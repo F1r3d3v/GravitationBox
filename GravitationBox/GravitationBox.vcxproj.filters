@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\Window.cpp" />
+    <ClCompile Include="src\ImGUI_Impl.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Window.h" />
+    <ClInclude Include="include\Renderer.h" />
+    <ClInclude Include="include\ImGUI_Impl.h" />
+  </ItemGroup>
+</Project>
