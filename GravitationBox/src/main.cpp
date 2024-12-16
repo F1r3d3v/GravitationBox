@@ -1,27 +1,52 @@
 #include <iostream>
-#include "Window.h"
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
+
 #include "ImGUI_Impl.h"
+#include "Window.h"
 
 #define WIDTH 1600
 #define HEIGHT 900
 
 int main(int argc, char* argv[])
 {
+	//try
+	//{
+	//	MySimulation simulation = new MySimulation();
+	//	simulation.Run();
+	//}
+	//catch (const std::exception& e)
+	//{
+	//	std::cerr << e.what() << std::endl;
+	//}
+
 	try
 	{
 		Window window(WIDTH, HEIGHT, "Gravitation Box");
+
+		if (!gladLoadGL(glfwGetProcAddress))
+			throw std::runtime_error("Failed to initialize GLAD");
 
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();
 
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(window.GetHandle(), true);
-		ImGui_ImplOpenGL3_Init("#version 460");
+		ImGui_ImplOpenGL3_Init("#version 460 core");
 
 		// Our state
 		bool show_demo_window = true;
@@ -36,6 +61,7 @@ int main(int argc, char* argv[])
 				ImGui_ImplGlfw_Sleep(10);
 				continue;
 			}
+
 			// Start the Dear ImGui frame
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -78,14 +104,24 @@ int main(int argc, char* argv[])
 				ImGui::End();
 			}
 
+
 			// Rendering
 			ImGui::Render();
 			int display_w, display_h;
 			glfwGetFramebufferSize(window.GetHandle(), &display_w, &display_h);
+
 			glViewport(0, 0, display_w, display_h);
 			glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 			glClear(GL_COLOR_BUFFER_BIT);
+
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			{
+				GLFWwindow* backup_current_context = glfwGetCurrentContext();
+				ImGui::UpdatePlatformWindows();
+				ImGui::RenderPlatformWindowsDefault();
+				glfwMakeContextCurrent(backup_current_context);
+			}
 
 			glfwSwapBuffers(window.GetHandle());
 		}

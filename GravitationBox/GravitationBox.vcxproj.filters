@@ -5,10 +5,14 @@
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Window.cpp" />
     <ClCompile Include="src\ImGUI_Impl.cpp" />
+    <ClCompile Include="src\Simulation.cpp" />
+    <ClCompile Include="MySimulation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Window.h" />
     <ClInclude Include="include\Renderer.h" />
     <ClInclude Include="include\ImGUI_Impl.h" />
+    <ClInclude Include="include\Simulation.h" />
+    <ClInclude Include="MySimulation.h" />
   </ItemGroup>
 </Project>

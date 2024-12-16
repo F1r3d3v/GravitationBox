@@ -1,7 +1,9 @@
 #include "Window.h"
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 Window::Window(int Width, int Height, std::string Title, bool VSync)
-	: m_Width(Width), m_Height(Height), m_Title(Title)
+	: m_Title(Title)
 {
 	if (!glfwInit())
 		throw std::runtime_error("Failed to initialize GLFW");
@@ -15,10 +17,6 @@ Window::Window(int Width, int Height, std::string Title, bool VSync)
 		throw std::runtime_error("Failed to create window");
 
 	glfwMakeContextCurrent(m_Handle);
-
-	if (!gladLoadGL(glfwGetProcAddress))
-		throw std::runtime_error("Failed to initialize GLAD");
-
 	glfwSwapInterval(VSync);
 }
 

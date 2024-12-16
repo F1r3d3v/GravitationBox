@@ -1,22 +1,21 @@
 #pragma once
 
-#include <glad/gl.h>
-#include <GLFW/glfw3.h>
-
 #include <stdexcept>
 #include <string>
 
+struct GLFWwindow;
+
 class Window
 {
+
 public:
 	Window(int Width, int Height, std::string Title, bool VSync = true);
 	~Window();
 
 	GLFWwindow* GetHandle() const { return m_Handle; }
+	std::string GetTitle() const { return m_Title; }
 private:
 	GLFWwindow* m_Handle;
-	int m_Width;
-	int m_Height;
 	std::string m_Title;
 };
 
