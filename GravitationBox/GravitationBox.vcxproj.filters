@@ -6,13 +6,31 @@
     <ClCompile Include="src\Window.cpp" />
     <ClCompile Include="src\ImGUI_Impl.cpp" />
     <ClCompile Include="src\Simulation.cpp" />
-    <ClCompile Include="MySimulation.cpp" />
+    <ClCompile Include="src\MySimulation.cpp" />
+    <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\Particles.cpp" />
+    <ClCompile Include="src\VerletSolver.cpp" />
+    <ClCompile Include="src\Grid.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Window.h" />
     <ClInclude Include="include\Renderer.h" />
     <ClInclude Include="include\ImGUI_Impl.h" />
     <ClInclude Include="include\Simulation.h" />
-    <ClInclude Include="MySimulation.h" />
+    <ClInclude Include="include\MySimulation.h" />
+    <ClInclude Include="include\Input.h" />
+    <ClInclude Include="include\Log.h" />
+    <ClInclude Include="include\Particles.h" />
+    <ClInclude Include="include\Config.h" />
+    <ClInclude Include="include\cuda_helper.h" />
+    <ClInclude Include="include\VerletSolver.h" />
+    <ClInclude Include="include\Grid.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\Renderer.cu" />
+    <CudaCompile Include="src\Particles.cu" />
+    <CudaCompile Include="src\VerletSolver.cu" />
+    <CudaCompile Include="src\Grid.cu" />
   </ItemGroup>
 </Project>

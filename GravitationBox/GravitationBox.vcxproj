@@ -11,12 +11,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MySimulation.cpp" />
+    <ClCompile Include="src\Grid.cpp" />
+    <ClCompile Include="src\Particles.cpp" />
+    <ClCompile Include="src\Log.cpp" />
+    <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\MySimulation.cpp" />
     <ClCompile Include="src\Simulation.cpp" />
     <ClCompile Include="src\ImGUI_Impl.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Window.cpp" />
+    <ClCompile Include="src\VerletSolver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="lib\glfw\lib-vc2022\glfw3.dll">
@@ -25,11 +30,34 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Grid.h" />
+    <ClInclude Include="include\Config.h" />
+    <ClInclude Include="include\cuda_helper.h" />
+    <ClInclude Include="include\Particles.h" />
     <ClInclude Include="include\ImGUI_Impl.h" />
     <ClInclude Include="include\Window.h" />
     <ClInclude Include="include\Renderer.h" />
     <ClInclude Include="include\Simulation.h" />
-    <ClInclude Include="MySimulation.h" />
+    <ClInclude Include="include\MySimulation.h" />
+    <ClInclude Include="include\Input.h" />
+    <ClInclude Include="include\Log.h" />
+    <ClInclude Include="include\VerletSolver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\Grid.cu" />
+    <CudaCompile Include="src\Particles.cu" />
+    <CudaCompile Include="src\Renderer.cu" />
+    <CudaCompile Include="src\VerletSolver.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="shaders\particle.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>shaders\%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="shaders\particle.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>shaders\%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AB8EFDCF-F30B-48B1-8F72-BE9196951639}</ProjectGuid>
@@ -80,7 +108,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opengl32.lib;glfw3.lib;glfw3dll.lib;GLAD.lib;ImGUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\glfw\lib-vc2022;$(SolutionDir)GLAD\obj\x64\Debug;$(SolutionDir)ImGUI\obj\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -103,7 +131,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opengl32.lib;glfw3.lib;glfw3dll.lib;GLAD.lib;ImGUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\glfw\lib-vc2022;$(SolutionDir)GLAD\obj\x64\Release;$(SolutionDir)ImGUI\obj\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>

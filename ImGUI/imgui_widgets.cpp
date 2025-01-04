@@ -6615,7 +6615,7 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
     // It is rather standard that arrow click react on Down rather than Up.
     // We set ImGuiButtonFlags_PressedOnClickRelease on OpenOnDoubleClick because we want the item to be active on the initial MouseDown in order for drag and drop to work.
     if (is_mouse_x_over_arrow)
-        button_flags |= ImGuiButtonFlags_PressedOnClick;
+        button_flags |= ImGuiButtonFlags_PressedOnClickRelease;
     else if (flags & ImGuiTreeNodeFlags_OpenOnDoubleClick)
         button_flags |= ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnDoubleClick;
     else
