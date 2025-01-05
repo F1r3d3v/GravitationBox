@@ -24,14 +24,36 @@ void MySimulation::OnStart()
 	m_Grid = new Grid(make_int2(size.x, size.y), 2 * Config::PARTICLE_RADIUS, m_IsCuda);
 	if (m_IsCuda)
 	{
-		m_ParticlesCPU = new Particles(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, false);
-		m_ParticlesCUDA = Particles::RandomCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+		switch (m_Selecteditem)
+		{
+		case 0:
+			m_ParticlesCUDA = Particles::RandomCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		case 1:
+			//m_ParticlesCUDA = Particles::RandomCircleCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		case 2:
+			//m_ParticlesCUDA = Particles::RandomBoxCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		}
+		m_ParticlesCPU = new Particles(m_ParticlesCUDA->Count, m_ParticlesCUDA->Radius, false);
 		m_Solver = new VerletSolver(m_ParticlesCUDA, m_Grid);
 	}
 	else
 	{
-		m_ParticlesCPU = Particles::RandomCPU(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
-		m_ParticlesCUDA = new Particles(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, true);
+		switch (m_Selecteditem)
+		{
+		case 0:
+			m_ParticlesCPU = Particles::RandomCPU(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		case 1:
+			m_ParticlesCPU = Particles::RandomCircleCPU(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		case 2:
+			m_ParticlesCPU = Particles::RandomBoxCPU(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			break;
+		}
+		m_ParticlesCUDA = new Particles(m_ParticlesCPU->Count, m_ParticlesCPU->Radius, true);
 		m_Solver = new VerletSolver(m_ParticlesCPU, m_Grid);
 	}
 	Log::Info("Simulation initialized");
@@ -154,6 +176,8 @@ void MySimulation::OnImGuiRender()
 	if (ImGui::CollapsingHeader("Scene"))
 	{
 		ImGui::ColorEdit3("Background Color", &Config::CLEAR_COLOR.x);
+		const char *items[]{ "Random","Circle","Box" };
+		ImGui::Combo("Preset", &m_Selecteditem, items, IM_ARRAYSIZE(items));
 	}
 	ImGui::Spacing();
 	if (ImGui::CollapsingHeader("Info"))
@@ -163,7 +187,6 @@ void MySimulation::OnImGuiRender()
 		ImGui::Text("Particle count: %zd", m_ParticlesCPU->Count);
 		ImGui::Text("Particle radius: %.1f", m_ParticlesCPU->Radius);
 		ImGui::Text("Particle mass range: %.1f - %.1f", Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
-		ImGui::Text("Particle max velocity: %.1f", Config::RAND_PARTICLE_VELOCITY_MAX);
 	}
 	ImGui::Spacing();
 	if (ImGui::CollapsingHeader("Controls"))

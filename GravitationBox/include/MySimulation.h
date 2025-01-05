@@ -27,5 +27,6 @@ private:
 	VerletSolver *m_Solver;
 	bool m_IsPaused;
 	bool m_IsCuda = true;
+	int m_Selecteditem = 0;
 };
 

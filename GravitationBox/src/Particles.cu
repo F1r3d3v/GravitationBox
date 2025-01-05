@@ -41,7 +41,7 @@ Particles *Particles::RandomCUDA(size_t count, float radius, glm::ivec2 dim)
 	unsigned long seed = time(NULL);
 
 	// Launch kernel
-	randomParticlesKernel<<<BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
+	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
 	cudaDeviceSynchronize();
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {

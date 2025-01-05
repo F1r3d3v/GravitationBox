@@ -30,6 +30,8 @@ public:
 	~Particles();
 
 	static Particles *RandomCPU(size_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomCircleCPU(size_t count, float radius, glm::ivec2 dim);\
+	static Particles *RandomBoxCPU(size_t count, float radius, glm::ivec2 dim);
 	static Particles *RandomCUDA(size_t count, float radius, glm::ivec2 dim);
 	static Particles *LoadFromFile(const char *filename, bool isCUDA);
 
