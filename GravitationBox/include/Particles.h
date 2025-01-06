@@ -23,7 +23,7 @@ struct Particles
 public:
 	size_t Count;
 	float Radius;
-	float *PosX, *PosY, *VelX, *VelY, *Mass;
+	float *PosX, *PosY, *prevPosX, *prevPosY, *Mass;
 	glm::vec4 *Color;
 
 	Particles(size_t count, float radius, bool isCUDA);

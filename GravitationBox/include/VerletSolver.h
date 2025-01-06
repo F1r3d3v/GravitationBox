@@ -23,8 +23,11 @@ private:
 	void SetParticleVelocity(uint32_t id, glm::vec2 vel);
 	glm::vec2 GetParticleVelocity(uint32_t id);
 
+	template <bool preserveImpulse>
 	void CheckCollisionsWithWalls();
+	template <bool preserveImpulse>
 	void CheckCollisionsWithParticles();
+	template <bool preserveImpulse>
 	void UpdateParticles(float dt);
 };
 

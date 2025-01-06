@@ -98,8 +98,10 @@ cudaError_t Grid::updateGridCUDA(const Particles &particles) {
 
 	thrust::device_ptr<unsigned int> d_cellIds_ptr(d_cellIds);
 	thrust::device_ptr<unsigned int> d_indices_ptr(d_indices);
+	thrust::device_ptr<unsigned int> d_cellStart_ptr(d_cellStart);
 	thrust::sequence(thrust::device, d_indices_ptr, d_indices_ptr + particles.Count);
 	thrust::sort_by_key(thrust::device, d_cellIds_ptr, d_cellIds_ptr + particles.Count, d_indices_ptr);
+	thrust::fill(thrust::device, d_cellStart_ptr, d_cellStart_ptr + h_cellStart.size(), 0xFFFFFFFF);
 
 	findCellStartEnd<<<BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK >> > (
 		d_cellIds,
