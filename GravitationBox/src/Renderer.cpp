@@ -11,10 +11,13 @@ Window *Renderer::m_Window = nullptr;
 Renderer::Renderer(Window *window)
 {
 	m_Window = window;
-	InitializeParticleInstancing();
 }
 
 Renderer::~Renderer()
+{
+}
+
+void Renderer::UninitializeParticleInstancing()
 {
 	cudaGraphicsUnregisterResource(m_CudaVBOResource);
 	glDeleteBuffers(1, &m_ParticleVBO);
@@ -22,7 +25,7 @@ Renderer::~Renderer()
 	glDeleteVertexArrays(1, &m_ParticleVAO);
 }
 
-void Renderer::InitializeParticleInstancing()
+void Renderer::InitializeParticleInstancing(size_t instanceCount)
 {
 	// Vertex data for a quad (centered at origin)
 	float quadVertices[] = {
@@ -66,7 +69,7 @@ void Renderer::InitializeParticleInstancing()
 
 	// Create and register instance buffer for CUDA
 	glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, Config::MAX_PARTICLE_COUNT * 8 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, instanceCount * 8 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 
 	// Register buffer with CUDA
 	cudaError_t err = cudaGraphicsGLRegisterBuffer(&m_CudaVBOResource, m_InstanceVBO, cudaGraphicsMapFlagsWriteDiscard);

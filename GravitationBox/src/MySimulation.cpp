@@ -21,6 +21,7 @@ void MySimulation::OnStart()
 {
 	m_IsPaused = true;
 	glm::ivec2 size = GetViewport();
+	GetRenderer()->InitializeParticleInstancing(Config::PARTICLE_COUNT);
 	m_Grid = new Grid(make_int2(size.x, size.y), 2 * Config::PARTICLE_RADIUS, m_IsCuda);
 	if (m_IsCuda)
 	{
@@ -107,6 +108,7 @@ void MySimulation::OnCleanup()
 	delete m_ParticlesCUDA;
 	delete m_Grid;
 	delete m_Solver;
+	GetRenderer()->UninitializeParticleInstancing();
 }
 
 void MySimulation::OnResize(int width, int height)
@@ -163,9 +165,7 @@ void MySimulation::OnImGuiRender()
 	ImGui::Spacing();
 	ImGui::PushItemWidth(100.0f);
 	ImGui::InputScalar("Count", ImGuiDataType_U32, &Config::PARTICLE_COUNT);
-	if (Config::PARTICLE_COUNT > Config::MAX_PARTICLE_COUNT)
-		Config::PARTICLE_COUNT = Config::MAX_PARTICLE_COUNT;
-	else if (Config::PARTICLE_COUNT < 1)
+	if (Config::PARTICLE_COUNT < 1)
 		Config::PARTICLE_COUNT = 1;
 	ImGui::SameLine();
 	ImGui::InputFloat("Radius", &Config::PARTICLE_RADIUS);

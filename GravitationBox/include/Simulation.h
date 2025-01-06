@@ -28,6 +28,7 @@ protected:
 	bool IsFixedTimeStep = false;
 	float FixedTimeStep = 1.0f / 60.0f;
 	glm::ivec2 GetViewport() const { return glm::ivec2(m_Window->GetWidth(), m_Window->GetHeight()); }
+	Renderer *GetRenderer() const { return m_Renderer; }
 
 private:
 	void Initialize();

@@ -18,7 +18,8 @@ public:
 	static void UnloadShader(unsigned int shaderProgram);
 	void Clear(glm::vec4 color);
 
-	void InitializeParticleInstancing();
+	void InitializeParticleInstancing(size_t instanceCount);
+	void UninitializeParticleInstancing();
 	void UpdateParticleInstancesCPU(ParticleData *pData);
 	void UpdateParticleInstancesCUDA(ParticleData *pData);
 	void RenderParticles(unsigned int shaderProgram, size_t instanceCount);
