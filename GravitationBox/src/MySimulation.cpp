@@ -31,10 +31,10 @@ void MySimulation::OnStart()
 			m_ParticlesCUDA = Particles::RandomCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
 			break;
 		case 1:
-			//m_ParticlesCUDA = Particles::RandomCircleCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			m_ParticlesCUDA = Particles::RandomCircleCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
 			break;
 		case 2:
-			//m_ParticlesCUDA = Particles::RandomBoxCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
+			m_ParticlesCUDA = Particles::RandomBoxCUDA(Config::PARTICLE_COUNT, Config::PARTICLE_RADIUS, size);
 			break;
 		}
 		m_ParticlesCPU = new Particles(m_ParticlesCUDA->Count, m_ParticlesCUDA->Radius, false);
@@ -114,6 +114,8 @@ void MySimulation::OnCleanup()
 void MySimulation::OnResize(int width, int height)
 {
 	m_Grid->Resize(make_int2(width, height), 2*Config::PARTICLE_RADIUS);
+	m_Solver->Params.DimX = width;
+	m_Solver->Params.DimY = height;
 }
 
 cudaError_t MySimulation::ChangeCuda(bool isCuda)
@@ -127,7 +129,7 @@ cudaError_t MySimulation::ChangeCuda(bool isCuda)
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelX, m_ParticlesCPU->VelX, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelY, m_ParticlesCPU->VelY, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Mass, m_ParticlesCPU->Mass, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Color, m_ParticlesCPU->Color, m_ParticlesCPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Color, m_ParticlesCPU->Color, m_ParticlesCPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice)); 
 		m_Solver->SetParticlesInstance(m_ParticlesCUDA);
 	}
 	else
