@@ -9,11 +9,12 @@ VerletSolver::~VerletSolver()
 {
 }
 
-void VerletSolver::VerletCPU(float dt)
+void VerletSolver::VerletCPU()
 {
-	UpdateParticles(dt);
+	UpdateParticles<true>();
 	m_Grid->updateGrid(*m_Particles);
 	CheckCollisions();
+	UpdateParticles<false>();
 }
 
 void VerletSolver::SetParticlePosition(uint32_t id, glm::vec2 pos)
@@ -38,170 +39,149 @@ glm::vec2 VerletSolver::GetParticleVelocity(uint32_t id)
 	return glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]);
 }
 
+glm::vec2 VerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB)
+{
+	glm::vec2 positionDelta = positionB - positionA;
+	float distance = glm::length(positionDelta);
+
+	glm::vec2 Force(0.0f, 0.0f);
+
+	float collideDistance = m_Params.Radius * 2.0f;
+	if (distance < collideDistance)
+	{
+		// Spring force
+		glm::vec2 normal = positionDelta / distance;
+		Force = -m_Params.ParticleStiffness * (collideDistance - distance) * normal;
+
+		// Damping force
+		glm::vec2 relativeVelocity = velocityB - velocityA;
+		float velocityAlongNormal = glm::dot(relativeVelocity, normal);
+		glm::vec2 normalVelocity = velocityAlongNormal * normal;
+		if (velocityAlongNormal < 0)
+		{
+			Force += m_Params.ParticleDampening * normalVelocity;
+		}
+
+		// Friction force
+		glm::vec2 tangentVelocity = relativeVelocity - normalVelocity;
+		Force += m_Params.ParticleShear * tangentVelocity;
+	}
+
+	return Force;
+}
+
+glm::vec2 VerletSolver::CheckCollisionInCell(uint32_t id, uint32_t cellId, glm::vec2 position, glm::vec2 velocity)
+{
+	glm::vec2 Force(0.0f, 0.0f);
+
+	uint32_t startIdx = m_Grid->h_cellStart[cellId];
+
+	if (startIdx == 0xffffffff) return Force;
+
+	uint32_t endIdx = m_Grid->h_cellEnd[cellId];
+
+	for (size_t i = startIdx; i < endIdx; ++i)
+	{
+		uint32_t j = m_Grid->h_indices[i];
+		if (id == j) continue;
+
+		glm::vec2 otherPosition(m_Particles->PosX[j], m_Particles->PosY[j]);
+		glm::vec2 otherVelocity(m_Particles->VelX[j], m_Particles->VelY[j]);
+
+		Force += SolveCollision(position, velocity, otherPosition, otherVelocity);
+	}
+
+	return Force;
+}
+
 void VerletSolver::CheckCollisions()
 {
 	for (uint32_t id = 0; id < m_Particles->Count; ++id)
 	{
-		//glm::vec2 pos_i = GetParticlePosition(id);
+		glm::vec2 Force(0.0f, 0.0f);
+		float x = m_Particles->PosX[id];
+		float y = m_Particles->PosY[id];
+		glm::ivec2 cell = { static_cast<int>(x / m_Grid->m_cellSize), static_cast<int>(y / m_Grid->m_cellSize) };
+		cell.x = std::clamp(cell.x, 0, m_Grid->m_Dim.x - 1);
+		cell.y = std::clamp(cell.y, 0, m_Grid->m_Dim.y - 1);
 
-		//// Retrieve neighboring particles
-		//std::vector<int> neighbors = m_Grid->getNeighborsCPU(pos_i.x, pos_i.y, m_Particles->Radius * 2.0f, *m_Particles);
+		for (int i = -1; i <= 1; ++i)
+		{
+			for (int j = -1; j <= 1; ++j)
+			{
+				int2 neighbour = { cell.x + i, cell.y + j };
+				if (neighbour.x < 0 || neighbour.x >= m_Grid->m_Dim.x || neighbour.y < 0 || neighbour.y >= m_Grid->m_Dim.y) continue;
 
-		//for (int j : neighbors)
-		//{
-		//	if (j <= id) continue; // Avoid double-checking pairs
+				uint32_t cellId = neighbour.y * m_Grid->m_Dim.x + neighbour.x;
+				Force += CheckCollisionInCell(id, cellId, { x, y }, { m_Particles->VelX[id], m_Particles->VelY[id] });
+			}
+		}
 
-		//	glm::vec2 pos_j = GetParticlePosition(j);
-		//	glm::vec2 delta = pos_i - pos_j;
-		//	float dist2 = glm::dot(delta, delta);
-		//	float minDist = m_Particles->Radius * 2.0f;
-
-		//	if (dist2 < minDist * minDist)
-		//	{
-		//		float dist = sqrtf(dist2);
-		//		if (dist == 0.0f) dist = minDist;
-
-		//		glm::vec2 normal = delta / dist;
-		//		float inv_mass_i = 1.0f / m_Particles->Mass[id];
-		//		float inv_mass_j = 1.0f / m_Particles->Mass[j];
-		//		constexpr float slop = 0.05f;
-		//		constexpr float percent = 0.5f;
-		//		glm::vec2 correction = (fmaxf(minDist - dist - slop, 0.0f) / (inv_mass_i + inv_mass_j)) * percent * normal;
-
-		//		// Adjust positions to resolve overlap
-		//		pos_i += inv_mass_i * correction;
-		//		pos_j -= inv_mass_j * correction;
-
-		//		SetParticlePosition(id, pos_i);
-		//		SetParticlePosition(j, pos_j);
-
-		//		if constexpr (preserveImpulse)
-		//		{
-		//			// Preserve impulse
-		//			glm::vec2 vel_i = pos_i - glm::vec2(m_Particles->prevPosX[id], m_Particles->prevPosY[id]);
-		//			glm::vec2 vel_j = pos_j - glm::vec2(m_Particles->prevPosX[j], m_Particles->prevPosY[j]);
-
-		//			glm::vec2 relVel = vel_i - vel_j;
-		//			float velAlongNormal = glm::dot(relVel, normal);
-		//			if (velAlongNormal > 0) continue;
-
-		//			float restitution = Config::DAMPENING;
-		//			float impulseMag = -(1.0f + restitution) * velAlongNormal;
-		//			impulseMag /= (1.0f / m_Particles->Mass[id] + 1.0f / m_Particles->Mass[j]);
-
-		//			glm::vec2 impulse = impulseMag * normal;
-
-		//			vel_i += impulse / m_Particles->Mass[id];
-		//			vel_j -= impulse / m_Particles->Mass[j];
-
-		//			// Update previous positions based on new velocities
-		//			m_Particles->prevPosX[id] = m_Particles->PosX[id] - vel_i.x;
-		//			m_Particles->prevPosY[id] = m_Particles->PosY[id] - vel_i.y;
-		//			m_Particles->prevPosX[j] = m_Particles->PosX[j] - vel_j.x;
-		//			m_Particles->prevPosY[j] = m_Particles->PosY[j] - vel_j.y;
-		//		}
-		//	}
-		//}
-
-		CheckCollisionsWithWalls(id);
+		m_Particles->ForceX[id] += Force.x;
+		m_Particles->ForceY[id] += Force.y;
 	}
 }
 
 void VerletSolver::CheckCollisionsWithWalls(uint32_t id)
 {
-	//float radius = m_Particles->Radius;
-	//float posX = m_Particles->PosX[id];
-	//float posY = m_Particles->PosY[id];
-	//float prevPosX = m_Particles->prevPosX[id];
-	//float prevPosY = m_Particles->prevPosY[id];
+	// Left and right walls
+	if (m_Particles->PosX[id] < m_Params.Radius)
+	{
+		m_Particles->PosX[id] = m_Params.Radius;
+		m_Particles->VelX[id] *= -m_Params.WallDampening;
+	}
+	else if (m_Particles->PosX[id] > m_Params.DimX - m_Params.Radius)
+	{
+		m_Particles->PosX[id] = m_Params.DimX - m_Params.Radius;
+		m_Particles->VelX[id] *= -m_Params.WallDampening;
+	}
 
-	//// Handle left and right walls
-	//if (posX - radius < 0.0f)
-	//{
-	//	if constexpr (preserveImpulse)
-	//	{
-	//		float velX = (prevPosX - posX) * Config::DAMPENING;
-	//		posX = radius;
-	//		prevPosX = posX - velX;
-	//	}
-	//	else
-	//	{
-	//		posX = radius;
-	//	}
-	//}
-	//else if (posX + radius > m_Grid->m_WorldDim.x)
-	//{
-	//	if constexpr (preserveImpulse)
-	//	{
-	//		float velX = (prevPosX - posX) * Config::DAMPENING;
-	//		posX = m_Grid->m_WorldDim.x - radius;
-	//		prevPosX = posX - velX;
-	//	}
-	//	else
-	//	{
-	//		posX = m_Grid->m_WorldDim.x - radius;
-	//	}
-	//}
-
-	//// Handle top and bottom walls
-	//if (posY - radius < 0.0f)
-	//{
-	//	if constexpr (preserveImpulse)
-	//	{
-	//		float velY = (prevPosY - posY) * Config::DAMPENING;
-	//		posY = radius;
-	//		prevPosY = posY - velY;
-	//	}
-	//	else
-	//	{
-	//		posY = radius;
-	//	}
-	//}
-	//else if (posY + radius > m_Grid->m_WorldDim.y)
-	//{
-	//	if constexpr (preserveImpulse)
-	//	{
-	//		float velY = (prevPosY - posY) * Config::DAMPENING;
-	//		posY = m_Grid->m_WorldDim.y - radius;
-	//		prevPosY = posY - velY;
-	//	}
-	//	else
-	//	{
-	//		posY = m_Grid->m_WorldDim.y - radius;
-	//	}
-	//}
-
-	//// Update positions and previous positions
-	//m_Particles->PosX[id] = posX;
-	//m_Particles->PosY[id] = posY;
-	//m_Particles->prevPosX[id] = prevPosX;
-	//m_Particles->prevPosY[id] = prevPosY;
+	// Top and bottom walls
+	if (m_Particles->PosY[id] < m_Params.Radius)
+	{
+		m_Particles->PosY[id] = m_Params.Radius;
+		m_Particles->VelY[id] *= -m_Params.WallDampening;
+	}
+	else if (m_Particles->PosY[id] > m_Params.DimY - m_Params.Radius)
+	{
+		m_Particles->PosY[id] = m_Params.DimY - m_Params.Radius;
+		m_Particles->VelY[id] *= -m_Params.WallDampening;
+	}
 }
 
-void VerletSolver::UpdateParticles(float dt)
+template <bool stage1>
+void VerletSolver::UpdateParticles()
 {
 	for (uint32_t id = 0; id < m_Particles->Count; ++id)
 	{
-		//float accX = 0.0f;
-		//float accY = Config::GRAVITY;
+		if constexpr (stage1)
+		{
+			glm::vec2 Position(m_Particles->PosX[id], m_Particles->PosY[id]);
+			glm::vec2 Velocity(m_Particles->VelX[id], m_Particles->VelY[id]);
+			glm::vec2 Force(m_Particles->ForceX[id], m_Particles->ForceY[id]);
 
-		//if constexpr (preserveImpulse)
-		//{
-		//	float newPosX = 2.0f * m_Particles->PosX[id] - m_Particles->prevPosX[id];
-		//	float newPosY = 2.0f * m_Particles->PosY[id] - m_Particles->prevPosY[id];
+			Position += Velocity * m_Params.Timestep + Force * (0.5f * m_Params.Timestep * m_Params.Timestep) / m_Particles->Mass[id];
+			Velocity += 0.5f * Force * m_Params.Timestep / m_Particles->Mass[id];
+			Force = glm::vec2(0.0f, m_Params.Gravity);
 
-		//	// Update previous positions
-		//	m_Particles->prevPosX[id] = m_Particles->PosX[id];
-		//	m_Particles->prevPosY[id] = m_Particles->PosY[id];
+			m_Particles->PosX[id] = Position.x;
+			m_Particles->PosY[id] = Position.y;
+			m_Particles->VelX[id] = Velocity.x;
+			m_Particles->VelY[id] = Velocity.y;
+			m_Particles->ForceX[id] = Force.x;
+			m_Particles->ForceY[id] = Force.y;
 
-		//	// Update current positions
-		//	m_Particles->PosX[id] = newPosX;
-		//	m_Particles->PosY[id] = newPosY;
-		//}
-		//else
-		//{
-		//	m_Particles->PosX[id] += accX * dt * dt;
-		//	m_Particles->PosY[id] += accY * dt * dt;
-		//}
+			CheckCollisionsWithWalls(id);
+		}
+		else
+		{
+			glm::vec2 Velocity(m_Particles->VelX[id], m_Particles->VelY[id]);
+			glm::vec2 Force(m_Particles->ForceX[id], m_Particles->ForceY[id]);
+
+			Velocity += 0.5f * Force * m_Params.Timestep / m_Particles->Mass[id];
+
+			m_Particles->VelX[id] = Velocity.x;
+			m_Particles->VelY[id] = Velocity.y;
+		}
 	}
 }

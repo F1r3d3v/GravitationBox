@@ -25,8 +25,10 @@ private:
 	Particles *m_ParticlesCPU, *m_ParticlesCUDA;
 	Grid *m_Grid;
 	VerletSolver *m_Solver;
+	VerletSolver::SimulationParams m_Params;
 	bool m_IsPaused;
 	bool m_IsCuda = true;
+	bool m_VSync;
 	int m_Selecteditem = 0;
 };
 

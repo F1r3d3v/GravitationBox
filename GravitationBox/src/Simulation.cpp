@@ -129,7 +129,7 @@ void Simulation::Close()
 	glfwSetWindowShouldClose(m_Window->GetHandle(), true);
 }
 
-void Simulation::SetVsyc(bool enabled)
+void Simulation::SetVSync(bool enabled)
 {
 	m_IsVsync = enabled;
 	glfwSwapInterval(enabled);

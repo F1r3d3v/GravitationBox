@@ -4,7 +4,7 @@
 #include <device_launch_parameters.h>  
 #include <curand_kernel.h>  
 
-__global__ void randomParticlesKernel(float *posX, float *posY, float *velX, float *velY, float *mass, glm::vec4 *color, size_t count, float radius, glm::ivec2 dim, unsigned long seed)
+__global__ void randomParticlesKernel(float *posX, float *posY, float *velX, float *velY, float *mass, glm::vec4 *color, size_t count, float radius, glm::ivec2 dim, uint64_t seed)
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -34,11 +34,11 @@ __global__ void randomParticlesKernel(float *posX, float *posY, float *velX, flo
 	}
 }
 
-Particles *Particles::RandomCUDA(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomCUDA(uint32_t count, float radius, glm::ivec2 dim)
 {
 	cudaError_t cudaStatus;
 	Particles *p = new Particles(count, radius, true);
-	unsigned long seed = time(NULL);
+	time_t seed = time(NULL);
 
 	// Launch kernel
 	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
@@ -52,7 +52,7 @@ Particles *Particles::RandomCUDA(size_t count, float radius, glm::ivec2 dim)
 	return p;
 }
 
-Particles *Particles::RandomCircleCUDA(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomCircleCUDA(uint32_t count, float radius, glm::ivec2 dim)
 {
 	Particles *p = RandomCircleCPU(count, radius, dim);
 	Particles *pGPU = new Particles(p->Count, radius, true);
@@ -66,7 +66,7 @@ Particles *Particles::RandomCircleCUDA(size_t count, float radius, glm::ivec2 di
 	return pGPU;
 }
 
-Particles *Particles::RandomBoxCUDA(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomBoxCUDA(uint32_t count, float radius, glm::ivec2 dim)
 {
 	Particles *p = RandomBoxCPU(count, radius, dim);
 	Particles *pGPU = new Particles(p->Count, radius, true);

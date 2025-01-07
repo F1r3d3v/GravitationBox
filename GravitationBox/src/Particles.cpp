@@ -5,16 +5,24 @@
 #define _USE_MATH_DEFINES	
 #include <math.h>
 
-Particles::Particles(size_t count, float radius, bool isCUDA) : Count(count), Radius(radius), m_IsCuda(isCUDA)
+Particles::Particles(uint32_t count, float radius, bool isCUDA) : Count(count), Radius(radius), m_IsCuda(isCUDA)
 {
 	if (m_IsCuda)
 	{
 		cudaMalloc(&PosX, Count * sizeof(float));
+		cudaMalloc(&SortedPosX, Count * sizeof(float));
 		cudaMalloc(&PosY, Count * sizeof(float));
+		cudaMalloc(&SortedPosY, Count * sizeof(float));
 		cudaMalloc(&VelX, Count * sizeof(float));
+		cudaMalloc(&SortedVelX, Count * sizeof(float));
 		cudaMalloc(&VelY, Count * sizeof(float));
+		cudaMalloc(&SortedVelY, Count * sizeof(float));
 		cudaMalloc(&ForceX, Count * sizeof(float));
+		cudaMemset(ForceX, 0, Count * sizeof(float));
+		cudaMalloc(&SortedForceX, Count * sizeof(float));
 		cudaMalloc(&ForceY, Count * sizeof(float));
+		cudaMemset(ForceY, 0, Count * sizeof(float));
+		cudaMalloc(&SortedForceY, Count * sizeof(float));
 		cudaMalloc(&Mass, Count * sizeof(float));
 		cudaMalloc(&Color, Count * sizeof(glm::vec4));
 	}
@@ -38,11 +46,17 @@ Particles::~Particles()
 	if (m_IsCuda)
 	{
 		cudaFree(PosX);
+		cudaFree(SortedPosX);
 		cudaFree(PosY);
+		cudaFree(SortedPosY);
 		cudaFree(VelX);
+		cudaFree(SortedVelX);
 		cudaFree(VelY);
+		cudaFree(SortedVelY);
 		cudaFree(ForceX);
+		cudaFree(SortedForceX);
 		cudaFree(ForceY);
+		cudaFree(SortedForceY);
 		cudaFree(Mass);
 		cudaFree(Color);
 	}
@@ -61,7 +75,7 @@ Particles::~Particles()
 	Renderer::UnloadShader(m_ShaderProgram);
 }
 
-Particles *Particles::RandomCPU(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomCPU(uint32_t count, float radius, glm::ivec2 dim)
 {
 	Particles *p = new Particles(count, radius, false);
 
@@ -107,7 +121,7 @@ Particles *Particles::RandomCPU(size_t count, float radius, glm::ivec2 dim)
 	return p;
 }
 
-Particles *Particles::RandomCircleCPU(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 dim)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -146,7 +160,7 @@ Particles *Particles::RandomCircleCPU(size_t count, float radius, glm::ivec2 dim
 	return p;
 }
 
-Particles *Particles::RandomBoxCPU(size_t count, float radius, glm::ivec2 dim)
+Particles *Particles::RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());

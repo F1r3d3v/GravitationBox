@@ -15,29 +15,29 @@ struct ParticleData {
 	float *PosY;
 	float2 Scale;
 	float4 *Color;
-	size_t Count;
+	uint32_t Count;
 };
 
 struct Particles
 {
 public:
-	size_t Count;
+	uint32_t Count;
 	float Radius;
-	float *PosX, *PosY;
-	float *VelX, *VelY;
-	float *ForceX, *ForceY;
+	float *PosX, *PosY, *SortedPosX, *SortedPosY;
+	float *VelX, *VelY, *SortedVelX, *SortedVelY;
+	float *ForceX, *ForceY, *SortedForceX, *SortedForceY;
 	float *Mass;
 	glm::vec4 *Color;
 
-	Particles(size_t count, float radius, bool isCUDA);
+	Particles(uint32_t count, float radius, bool isCUDA);
 	~Particles();
 
-	static Particles *RandomCPU(size_t count, float radius, glm::ivec2 dim);
-	static Particles *RandomCircleCPU(size_t count, float radius, glm::ivec2 dim);
-	static Particles *RandomBoxCPU(size_t count, float radius, glm::ivec2 dim);
-	static Particles *RandomCUDA(size_t count, float radius, glm::ivec2 dim);
-	static Particles *RandomCircleCUDA(size_t count, float radius, glm::ivec2 dim);
-	static Particles *RandomBoxCUDA(size_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomCPU(uint32_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomCircleCPU(uint32_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomCUDA(uint32_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomCircleCUDA(uint32_t count, float radius, glm::ivec2 dim);
+	static Particles *RandomBoxCUDA(uint32_t count, float radius, glm::ivec2 dim);
 
 	void DrawCPU(Renderer *renderer);
 	void DrawCUDA(Renderer *renderer);

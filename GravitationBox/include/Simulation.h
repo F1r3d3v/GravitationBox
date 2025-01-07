@@ -22,8 +22,8 @@ protected:
 	virtual void OnCleanup() = 0;
 	virtual void OnResize(int width, int height) = 0;
 
-	void SetVsyc(bool enabled);
-	bool GetVsync() const { return m_IsVsync; }
+	void SetVSync(bool enabled);
+	bool GetVSync() const { return m_IsVsync; }
 
 	bool IsFixedTimeStep = false;
 	float FixedTimeStep = 1.0f / 60.0f;

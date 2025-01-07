@@ -10,6 +10,7 @@ MySimulation::MySimulation(std::string title, int width, int height)
 	: Simulation(title, width, height)
 {
 	InitCUDA();
+	m_VSync = GetVSync();
 }
 
 MySimulation::~MySimulation()
@@ -21,6 +22,7 @@ void MySimulation::OnStart()
 {
 	m_IsPaused = true;
 	glm::ivec2 size = GetViewport();
+	m_Params.Radius = Config::PARTICLE_RADIUS;
 	GetRenderer()->InitializeParticleInstancing(Config::PARTICLE_COUNT);
 	m_Grid = new Grid(make_int2(size.x, size.y), 2 * Config::PARTICLE_RADIUS, m_IsCuda);
 	if (m_IsCuda)
@@ -79,15 +81,24 @@ void MySimulation::OnUpdate(float deltaTime)
 	if (Input::IsKeyPressed(GLFW_KEY_R))
 		Reset();
 
+	if (Input::IsKeyPressed(GLFW_KEY_V))
+		SetVSync(m_VSync = !m_VSync);
+
 	if (!m_IsPaused)
 	{
-		float substep_dt = deltaTime / Config::SUBSTEPS;
+		VerletSolver::SimulationParams params = m_Params;
+		params.Timestep /= Config::SUBSTEPS;
+		m_Solver->SetParams(params);
 		for (int i = 0; i < Config::SUBSTEPS; i++)
 		{
 			if (m_IsCuda)
-				m_Solver->VerletCuda(substep_dt);
+			{
+				m_Solver->VerletCuda();
+			}
 			else
-				m_Solver->VerletCPU(substep_dt);
+			{
+				m_Solver->VerletCPU();
+			}
 		}
 	}
 }
@@ -114,8 +125,8 @@ void MySimulation::OnCleanup()
 void MySimulation::OnResize(int width, int height)
 {
 	m_Grid->Resize(make_int2(width, height), 2*Config::PARTICLE_RADIUS);
-	m_Solver->Params.DimX = width;
-	m_Solver->Params.DimY = height;
+	m_Params.DimX = width;
+	m_Params.DimY = height;
 }
 
 cudaError_t MySimulation::ChangeCuda(bool isCuda)
@@ -162,6 +173,9 @@ void MySimulation::OnImGuiRender()
 	ImGui::SameLine();
 	if (ImGui::Checkbox("Use CUDA", &m_IsCuda))
 		ChangeCuda(m_IsCuda);
+	ImGui::SameLine();
+	if (ImGui::Checkbox("VSync", &m_VSync))
+		SetVSync(m_VSync);
 	ImGui::Spacing();
 	ImGui::PushItemWidth(100.0f);
 	ImGui::InputScalar("Count", ImGuiDataType_U32, &Config::PARTICLE_COUNT);
@@ -180,6 +194,18 @@ void MySimulation::OnImGuiRender()
 		ImGui::Combo("Preset", &m_Selecteditem, items, IM_ARRAYSIZE(items));
 	}
 	ImGui::Spacing();
+	if (ImGui::CollapsingHeader("Parameters"))
+	{
+		// Edit m_Solver parameters
+		ImGui::InputInt("Substeps", &Config::SUBSTEPS);
+		ImGui::InputFloat("Timestep", &m_Params.Timestep);
+		ImGui::InputFloat("Gravity", &m_Params.Gravity);
+		ImGui::InputFloat("Wall Dampening", &m_Params.WallDampening);
+		ImGui::InputFloat("Particle Dampening", &m_Params.ParticleDampening);
+		ImGui::InputFloat("Particle Stiffness", &m_Params.ParticleStiffness);
+		ImGui::InputFloat("Particle Shear", &m_Params.ParticleShear);
+	}
+	ImGui::Spacing();
 	if (ImGui::CollapsingHeader("Info"))
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -191,9 +217,10 @@ void MySimulation::OnImGuiRender()
 	ImGui::Spacing();
 	if (ImGui::CollapsingHeader("Controls"))
 	{
+		ImGui::BulletText("Press 'P' to pause/resume simulation");
 		ImGui::BulletText("Press 'R' to reset simulation");
 		ImGui::BulletText("Press 'C' to toggle between CPU and CUDA");
-		ImGui::BulletText("Press 'P' to pause/resume simulation");
+		ImGui::BulletText("Press 'V' to toggle VSync");
 		ImGui::BulletText("Press 'ESC' to close the application");
 	}
 
