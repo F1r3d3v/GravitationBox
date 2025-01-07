@@ -26,10 +26,8 @@ __global__ void randomParticlesKernel(float *posX, float *posY, float *velX, flo
 
 		posX[idx] = baseX + curand_uniform(&state) * (cellWidth - 2 * radius) + radius;
 		posY[idx] = baseY + curand_uniform(&state) * (cellHeight - 2 * radius) + radius;
-		//velX[idx] = curand_uniform(&state) * 2 * Config::RAND_PARTICLE_VELOCITY_MAX - Config::RAND_PARTICLE_VELOCITY_MAX;
-		//velY[idx] = curand_uniform(&state) * 2 * Config::RAND_PARTICLE_VELOCITY_MAX - Config::RAND_PARTICLE_VELOCITY_MAX;
-		velX[idx] = posX[idx] + (2.0 * curand_uniform(&state) - 1.0);
-		velY[idx] = posY[idx] + (2.0 * curand_uniform(&state) - 1.0);
+		velX[idx] = curand_uniform(&state) * 2 * Config::RAND_PARTICLE_VELOCITY_MAX - Config::RAND_PARTICLE_VELOCITY_MAX;
+		velY[idx] = curand_uniform(&state) * 2 * Config::RAND_PARTICLE_VELOCITY_MAX - Config::RAND_PARTICLE_VELOCITY_MAX;
 		float t = curand_uniform(&state);
 		mass[idx] = t * Config::PARTICLE_MASS_MAX + (1.0 - t) * Config::PARTICLE_MASS_MIN;
 		color[idx] = glm::vec4(curand_uniform(&state), curand_uniform(&state), curand_uniform(&state), 1.0f);
@@ -43,7 +41,7 @@ Particles *Particles::RandomCUDA(size_t count, float radius, glm::ivec2 dim)
 	unsigned long seed = time(NULL);
 
 	// Launch kernel
-	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->prevPosX, p->prevPosY, p->Mass, p->Color, count, radius, dim, seed);
+	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
 	cudaDeviceSynchronize();
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -51,7 +49,33 @@ Particles *Particles::RandomCUDA(size_t count, float radius, glm::ivec2 dim)
 		return nullptr;
 	}
 
-	p->InitDrawingData();
-
 	return p;
+}
+
+Particles *Particles::RandomCircleCUDA(size_t count, float radius, glm::ivec2 dim)
+{
+	Particles *p = RandomCircleCPU(count, radius, dim);
+	Particles *pGPU = new Particles(p->Count, radius, true);
+	cudaMemcpy(pGPU->PosX, p->PosX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	delete p;
+	return pGPU;
+}
+
+Particles *Particles::RandomBoxCUDA(size_t count, float radius, glm::ivec2 dim)
+{
+	Particles *p = RandomBoxCPU(count, radius, dim);
+	Particles *pGPU = new Particles(p->Count, radius, true);
+	cudaMemcpy(pGPU->PosX, p->PosX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	delete p;
+	return pGPU;
 }

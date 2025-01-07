@@ -80,7 +80,7 @@ void Simulation::Run()
 		currentTime = newTime;
 
 		Input::Update();
-		deltaTime = min(deltaTime, 1.0f/30.0f);
+		deltaTime = std::min(deltaTime, 1.0f/30.0f);
 		OnUpdate(deltaTime);
 
 		glfwPollEvents();

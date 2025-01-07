@@ -124,11 +124,10 @@ cudaError_t MySimulation::ChangeCuda(bool isCuda)
 		// Copy data from CPU to GPU
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->PosX, m_ParticlesCPU->PosX, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->PosY, m_ParticlesCPU->PosY, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->prevPosX, m_ParticlesCPU->prevPosX, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->prevPosY, m_ParticlesCPU->prevPosY, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelX, m_ParticlesCPU->VelX, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelY, m_ParticlesCPU->VelY, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Mass, m_ParticlesCPU->Mass, m_ParticlesCPU->Count * sizeof(float), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Color, m_ParticlesCPU->Color, m_ParticlesCPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice));
-		m_ParticlesCUDA->InitDrawingData();
 		m_Solver->SetParticlesInstance(m_ParticlesCUDA);
 	}
 	else
@@ -136,11 +135,10 @@ cudaError_t MySimulation::ChangeCuda(bool isCuda)
 		// Copy data from GPU to CPU
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->PosX, m_ParticlesCUDA->PosX, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->PosY, m_ParticlesCUDA->PosY, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->prevPosX, m_ParticlesCUDA->prevPosX, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->prevPosY, m_ParticlesCUDA->prevPosY, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
+		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->VelX, m_ParticlesCUDA->VelX, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
+		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->VelY, m_ParticlesCUDA->VelY, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->Mass, m_ParticlesCUDA->Mass, m_ParticlesCUDA->Count * sizeof(float), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->Color, m_ParticlesCUDA->Color, m_ParticlesCUDA->Count * sizeof(glm::vec4), cudaMemcpyDeviceToHost));
-		m_ParticlesCPU->InitDrawingData();
 		m_Solver->SetParticlesInstance(m_ParticlesCPU);
 	}
 	m_Grid->setDevice(m_IsCuda);

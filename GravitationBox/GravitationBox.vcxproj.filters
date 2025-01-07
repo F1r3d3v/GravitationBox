@@ -26,6 +26,7 @@
     <ClInclude Include="include\cuda_helper.h" />
     <ClInclude Include="include\VerletSolver.h" />
     <ClInclude Include="include\Grid.h" />
+    <ClInclude Include="include\cuda_helper_math.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Renderer.cu" />

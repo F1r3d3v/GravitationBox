@@ -11,8 +11,10 @@ Particles::Particles(size_t count, float radius, bool isCUDA) : Count(count), Ra
 	{
 		cudaMalloc(&PosX, Count * sizeof(float));
 		cudaMalloc(&PosY, Count * sizeof(float));
-		cudaMalloc(&prevPosX, Count * sizeof(float));
-		cudaMalloc(&prevPosY, Count * sizeof(float));
+		cudaMalloc(&VelX, Count * sizeof(float));
+		cudaMalloc(&VelY, Count * sizeof(float));
+		cudaMalloc(&ForceX, Count * sizeof(float));
+		cudaMalloc(&ForceY, Count * sizeof(float));
 		cudaMalloc(&Mass, Count * sizeof(float));
 		cudaMalloc(&Color, Count * sizeof(glm::vec4));
 	}
@@ -20,11 +22,15 @@ Particles::Particles(size_t count, float radius, bool isCUDA) : Count(count), Ra
 	{
 		PosX = new float[Count];
 		PosY = new float[Count];
-		prevPosX = new float[Count];
-		prevPosY = new float[Count];
+		VelX = new float[Count];
+		VelY = new float[Count];
+		ForceX = new float[Count];
+		ForceY = new float[Count];
 		Mass = new float[Count];
 		Color = new glm::vec4[Count];
 	}
+
+	InitDrawingData();
 }
 
 Particles::~Particles()
@@ -33,8 +39,10 @@ Particles::~Particles()
 	{
 		cudaFree(PosX);
 		cudaFree(PosY);
-		cudaFree(prevPosX);
-		cudaFree(prevPosY);
+		cudaFree(VelX);
+		cudaFree(VelY);
+		cudaFree(ForceX);
+		cudaFree(ForceY);
 		cudaFree(Mass);
 		cudaFree(Color);
 	}
@@ -42,8 +50,10 @@ Particles::~Particles()
 	{
 		delete[] PosX;
 		delete[] PosY;
-		delete[] prevPosX;
-		delete[] prevPosY;
+		delete[] VelX;
+		delete[] VelY;
+		delete[] ForceX;
+		delete[] ForceY;
 		delete[] Mass;
 		delete[] Color;
 	}
@@ -87,8 +97,8 @@ Particles *Particles::RandomCPU(size_t count, float radius, glm::ivec2 dim)
 
 		p->PosX[i] = pos.x;
 		p->PosY[i] = pos.y;
-		p->prevPosX[i] = pos.x - vel_dist(gen);
-		p->prevPosY[i] = pos.y - vel_dist(gen);
+		p->VelX[i] = vel_dist(gen);
+		p->VelY[i] = vel_dist(gen);
 		p->Mass[i] = mass_dist(gen);
 		p->Color[i] = glm::vec4(color_dist(gen), color_dist(gen), color_dist(gen), 1.0f);
 	}
@@ -123,8 +133,8 @@ Particles *Particles::RandomCircleCPU(size_t count, float radius, glm::ivec2 dim
 			if ((l <= circle_radius - radius) && (index < count)) {
 				p->PosX[index] = center.x + dx + (1.0 + jitter(gen));
 				p->PosY[index] = center.y + dy + (1.0 + jitter(gen));
-				p->prevPosX[index] = p->PosX[index];
-				p->prevPosY[index] = p->PosY[index];
+				p->VelX[index] = 0;
+				p->VelY [index] = 0;
 				p->Mass[index] = mass_dist(gen);
 				p->Color[index] = glm::vec4(color_dist(gen), color_dist(gen), color_dist(gen), 1.0f);
 				index++;
@@ -163,8 +173,8 @@ Particles *Particles::RandomBoxCPU(size_t count, float radius, glm::ivec2 dim)
 			if (index < count) {
 				p->PosX[index] = center.x + dx + jitter(gen);
 				p->PosY[index] = center.y + dy + jitter(gen);
-				p->prevPosX[index] = p->PosX[index];
-				p->prevPosY[index] = p->PosY[index];
+				p->VelX[index] = 0;
+				p->VelY[index] = 0;
 				p->Mass[index] = mass_dist(gen);
 				p->Color[index] = glm::vec4(color_dist(gen), color_dist(gen), color_dist(gen), 1.0f);
 				index++;
@@ -176,35 +186,34 @@ Particles *Particles::RandomBoxCPU(size_t count, float radius, glm::ivec2 dim)
 	return p;
 }
 
-Particles *Particles::LoadFromFile(const char *filename, bool isCUDA)
-{
-	FILE *file;
-	fopen_s(&file, filename, "r");
-	if (!file)
-	{
-		return nullptr;
-	}
-	glm::vec4 color;
-	size_t count;
-	float radius;
-	fscanf_s(file, "%zu %f", &count, &radius);
-	fscanf_s(file, "%f %f %f", &color.r, &color.g, &color.b);
-	color.a = 1.0f;
-	Particles *p = new Particles(count, radius, isCUDA);
-	p->PosX = new float[p->Count];
-	p->PosY = new float[p->Count];
-	p->prevPosX = new float[p->Count];
-	p->prevPosY = new float[p->Count];
-	p->Mass = new float[p->Count];
-	for (size_t i = 0; i < p->Count; ++i)
-	{
-		fscanf_s(file, "%f %f %f %f %f", &p->PosX[i], &p->PosY[i], &p->prevPosX[i], &p->prevPosY[i], &p->Mass[i]);
-		p->Color[i] = color;
-	}
-	fclose(file);
-	p->InitDrawingData();
-	return p;
-}
+//Particles *Particles::LoadFromFile(const char *filename, bool isCUDA)
+//{
+//	FILE *file;
+//	fopen_s(&file, filename, "r");
+//	if (!file)
+//	{
+//		return nullptr;
+//	}
+//	glm::vec4 color;
+//	size_t count;
+//	float radius;
+//	fscanf_s(file, "%zu %f", &count, &radius);
+//	fscanf_s(file, "%f %f %f", &color.r, &color.g, &color.b);
+//	color.a = 1.0f;
+//	Particles *p = new Particles(count, radius, isCUDA);
+//	p->PosX = new float[p->Count];
+//	p->PosY = new float[p->Count];
+//	p->VelX = new float[p->Count];
+//	p->VelY = new float[p->Count];
+//	p->Mass = new float[p->Count];
+//	for (size_t i = 0; i < p->Count; ++i)
+//	{
+//		fscanf_s(file, "%f %f %f %f %f", &p->PosX[i], &p->PosY[i], &p->VelX[i], &p->VelY[i], &p->Mass[i]);
+//		p->Color[i] = color;
+//	}
+//	fclose(file);
+//	return p;
+//}
 
 void Particles::InitDrawingData()
 {
