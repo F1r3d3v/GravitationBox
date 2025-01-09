@@ -2,7 +2,7 @@
 
 VerletSolver::VerletSolver(Particles *p, Grid *g) : m_Particles(p), m_Grid(g)
 {
-	g->updateGrid(*m_Particles);
+	g->UpdateGrid(*m_Particles);
 }
 
 VerletSolver::~VerletSolver()
@@ -12,7 +12,7 @@ VerletSolver::~VerletSolver()
 void VerletSolver::VerletCPU()
 {
 	UpdateParticles<true>();
-	m_Grid->updateGrid(*m_Particles);
+	m_Grid->UpdateGrid(*m_Particles);
 	CheckCollisions();
 	UpdateParticles<false>();
 }
@@ -162,7 +162,7 @@ void VerletSolver::UpdateParticles()
 
 			Position += Velocity * m_Params.Timestep + Force * (0.5f * m_Params.Timestep * m_Params.Timestep) / m_Particles->Mass[id];
 			Velocity += 0.5f * Force * m_Params.Timestep / m_Particles->Mass[id];
-			Force = glm::vec2(0.0f, m_Params.Gravity);
+			Force = glm::vec2(0.0f, m_Params.Gravity * m_Particles->Mass[id]);
 
 			m_Particles->PosX[id] = Position.x;
 			m_Particles->PosY[id] = Position.y;

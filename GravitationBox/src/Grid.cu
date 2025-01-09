@@ -34,8 +34,8 @@ __global__ void findCellStartEnd(uint32_t *sortedCellIds, uint32_t*cellStart, ui
 		}
 		else
 		{
-			int cell = sortedCellIds[tid];
-			int prevCell = sortedCellIds[tid - 1];
+			int cell = __ldg(&sortedCellIds[tid]);
+			int prevCell = __ldg(&sortedCellIds[tid - 1]);
 
 			if (cell != prevCell)
 			{
@@ -45,7 +45,7 @@ __global__ void findCellStartEnd(uint32_t *sortedCellIds, uint32_t*cellStart, ui
 		}
 		if (tid == particleCount - 1)
 		{
-			cellEnd[sortedCellIds[tid]] = particleCount;
+			cellEnd[__ldg(&sortedCellIds[tid])] = particleCount;
 		}
 	}
 }
@@ -65,53 +65,66 @@ __global__ void Reorder(uint32_t *particleIndex,
 	for (; tid < particleCount; tid += stride)
 	{
 		uint32_t index = particleIndex[tid];
-		sortedPosX[tid] = posX[index];
-		sortedPosY[tid] = posY[index];
-		sortedVelX[tid] = velX[index];
-		sortedVelY[tid] = velY[index];
-		sortedForceX[tid] = forceX[index];
-		sortedForceY[tid] = forceY[index];
+		sortedPosX[tid] = __ldg(&posX[index]);
+		sortedPosY[tid] = __ldg(&posY[index]);
+		sortedVelX[tid] = __ldg(&velX[index]);
+		sortedVelY[tid] = __ldg(&velY[index]);
+		sortedForceX[tid] = __ldg(&forceX[index]);
+		sortedForceY[tid] = __ldg(&forceY[index]);
 	}
 }
 
-void Grid::allocateGPUMemory(size_t particleCount) {
-	cudaMalloc(&d_cellIds, particleCount * sizeof(uint32_t));
-	cudaMalloc(&d_particleIndex, particleCount * sizeof(uint32_t));
-	cudaMalloc(&d_cellStart, h_cellStart.size() * sizeof(uint32_t));
-	cudaMalloc(&d_cellEnd, h_cellEnd.size() * sizeof(uint32_t));
+cudaError_t Grid::allocateGPUMemory(size_t particleCount)
+{
+	CUDA_CHECK(cudaMalloc(&d_cellIds, particleCount * sizeof(uint32_t)));
+	CUDA_CHECK(cudaMalloc(&d_particleIndex, particleCount * sizeof(uint32_t)));
+	CUDA_CHECK(cudaMalloc(&d_cellStart, h_cellStart.size() * sizeof(uint32_t)));
+	CUDA_CHECK(cudaMalloc(&d_cellEnd, h_cellEnd.size() * sizeof(uint32_t)));
+
+	return cudaSuccess;
 }
 
-void Grid::freeGPUMemory() {
-	cudaFree(d_cellIds);
-	cudaFree(d_particleIndex);
-	cudaFree(d_cellStart);
-	cudaFree(d_cellEnd);
+cudaError_t Grid::freeGPUMemory()
+{
+	CUDA_CHECK(cudaFree(d_cellIds));
+	CUDA_CHECK(cudaFree(d_particleIndex));
+	CUDA_CHECK(cudaFree(d_cellStart));
+	CUDA_CHECK(cudaFree(d_cellEnd));
 	d_cellIds = nullptr;
 	d_particleIndex = nullptr;
 	d_cellStart = nullptr;
 	d_cellEnd = nullptr;
+
+	return cudaSuccess;
 }
 
-void Grid::transferToGPU() {
-	cudaMemcpy(d_cellIds, h_cellIds.data(), h_cellIds.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_particleIndex, h_indices.data(), h_indices.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_cellStart, h_cellStart.data(), h_cellStart.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_cellEnd, h_cellEnd.data(), h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
+cudaError_t Grid::transferToGPU()
+{
+	CUDA_CHECK(cudaMemcpy(d_cellIds, h_cellIds.data(), h_cellIds.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpy(d_particleIndex, h_indices.data(), h_indices.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpy(d_cellStart, h_cellStart.data(), h_cellStart.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpy(d_cellEnd, h_cellEnd.data(), h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+
+	return cudaSuccess;
 }
 
-void Grid::transferToCPU() {
-	cudaMemcpy(h_cellIds.data(), d_cellIds, h_cellIds.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-	cudaMemcpy(h_indices.data(), d_particleIndex, h_indices.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-	cudaMemcpy(h_cellStart.data(), d_cellStart, h_cellStart.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-	cudaMemcpy(h_cellEnd.data(), d_cellEnd, h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost);
+cudaError_t Grid::transferToCPU()
+{
+	CUDA_CHECK(cudaMemcpy(h_cellIds.data(), d_cellIds, h_cellIds.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(h_indices.data(), d_particleIndex, h_indices.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(h_cellStart.data(), d_cellStart, h_cellStart.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(h_cellEnd.data(), d_cellEnd, h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+
+	return cudaSuccess;
 }
 
-cudaError_t Grid::updateGridCUDA(const Particles &particles) {
-	if (particles.Count == 0) return cudaSuccess;
-
+cudaError_t Grid::updateGridCUDA(const Particles &particles)
+{
 	if (d_cellIds == nullptr) {
-		allocateGPUMemory(particles.Count);
+		allocateGPUMemory(particles.TotalCount);
 	}
+
+	if (particles.Count == 0) return cudaSuccess;
 
 	calculateCellIds<<<BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK>> > (
 		particles.PosX,

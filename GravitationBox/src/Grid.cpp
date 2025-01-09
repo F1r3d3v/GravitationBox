@@ -11,7 +11,7 @@ Grid::Grid(int2 dimensions, float size, bool gpu)
 	h_cellEnd.resize(totalCells);
 }
 
-void Grid::setDevice(bool gpu) {
+void Grid::SetDevice(bool gpu) {
 	if (m_IsCuda == gpu) return;
 
 	if (gpu) {
@@ -34,8 +34,8 @@ Grid::~Grid() {
 void Grid::updateGridCPU(const Particles &particles) {
 	if (particles.Count == 0) return;
 
-	h_cellIds.resize(particles.Count);
-	h_indices.resize(particles.Count);
+	h_cellIds.resize(particles.TotalCount);
+	h_indices.resize(particles.TotalCount);
 
 	for (size_t i = 0; i < particles.Count; i++) {
 		int x = std::clamp((int)(particles.PosX[i] / m_cellSize), 0, m_Dim.x - 1);
@@ -67,48 +67,13 @@ void Grid::updateGridCPU(const Particles &particles) {
 	h_cellEnd[currentCell] = particles.Count;
 }
 
-void Grid::updateGrid(const Particles &particles) {
+void Grid::UpdateGrid(const Particles &particles) {
 	if (m_IsCuda) {
 		updateGridCUDA(particles);
 	}
 	else {
 		updateGridCPU(particles);
 	}
-}
-
-int Grid::getGridIndex(float x, float y) const {
-	int cellX = x / m_cellSize;
-	int cellY = y / m_cellSize;
-	return cellY * m_Dim.x + cellX;
-}
-
-std::vector<int> Grid::getNeighborsCPU(float x, float y, float radius, const Particles &particles) {
-	std::vector<int> neighborIndices;
-	int cellId = getGridIndex(x, y);
-	float radiusSq = radius * radius;
-
-	for (int dy = -1; dy <= 1; dy++) {
-		for (int dx = -1; dx <= 1; dx++) {
-			int neighborCellId = cellId + (dy * m_Dim.x) + dx;
-
-			if (neighborCellId < 0 || neighborCellId >= h_cellStart.size()) continue;
-
-			unsigned int start = h_cellStart[neighborCellId];
-			unsigned int end = h_cellEnd[neighborCellId];
-
-			for (unsigned int i = start; i < end; i++) {
-				unsigned int idx = h_indices[i];
-				float dx = x - particles.PosX[idx];
-				float dy = y - particles.PosY[idx];
-				float distSq = dx * dx + dy * dy;
-
-				if (distSq <= radiusSq) {
-					neighborIndices.push_back(idx);
-				}
-			}
-		}
-	}
-	return neighborIndices;
 }
 
 void Grid::Resize(int2 dimensions, float size)

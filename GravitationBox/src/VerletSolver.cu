@@ -64,24 +64,24 @@ __device__ float2 SolveCollision(float2 positionA, float2 velocityA, float2 posi
 
 __device__ float2 CheckCollisionInCell(uint32_t tid, uint32_t cellId,
 	float2 position, float2 velocity,
-	const float *__restrict PosX, const float *__restrict PosY,
-	const float *__restrict VelX, const float *__restrict VelY,
+	float *PosX, float *PosY,
+	float *VelX, float *VelY,
 	uint32_t *cellStart, uint32_t *cellEnd)
 {
 	float2 Force = make_float2(0.0f, 0.0f);
 
-	uint32_t startIdx = cellStart[cellId];
+	uint32_t startIdx = __ldg(&cellStart[cellId]);
 
 	if (startIdx == 0xffffffff) return Force;
 
-	uint32_t endIdx = cellEnd[cellId];
+	uint32_t endIdx = __ldg(&cellEnd[cellId]);
 
 	for (size_t i = startIdx; i < endIdx; ++i)
 	{
 		if (tid == i) continue;
 
-		float2 otherPosition = make_float2(PosX[i], PosY[i]);
-		float2 otherVelocity = make_float2(VelX[i], VelY[i]);
+		float2 otherPosition = make_float2(__ldg(&PosX[i]), __ldg(&PosY[i]));
+		float2 otherVelocity = make_float2(__ldg(&VelX[i]), __ldg(&VelY[i]));
 
 		Force += SolveCollision(position, velocity, otherPosition, otherVelocity);
 	}
@@ -103,9 +103,9 @@ __global__ void VelocityVerletIntegrationKernel(float *PosX, float *PosY, float 
 			float2 Velocity = make_float2(VelX[tid], VelY[tid]);
 			float2 Force = make_float2(ForceX[tid], ForceY[tid]);
 
-			Position += Velocity * d_Params.Timestep + Force * (0.5f * d_Params.Timestep * d_Params.Timestep) / Mass[tid];
-			Velocity += 0.5f * Force * d_Params.Timestep / Mass[tid];
-			Force = make_float2(0.0f, d_Params.Gravity);
+			Position += Velocity * d_Params.Timestep + Force * (0.5f * d_Params.Timestep * d_Params.Timestep) / __ldg(&Mass[tid]);
+			Velocity += 0.5f * Force * d_Params.Timestep / __ldg(&Mass[tid]);
+			Force = make_float2(0.0f, d_Params.Gravity * __ldg(&Mass[tid]));
 
 			PosX[tid] = Position.x;
 			PosY[tid] = Position.y;
@@ -121,7 +121,7 @@ __global__ void VelocityVerletIntegrationKernel(float *PosX, float *PosY, float 
 			float2 Velocity = make_float2(VelX[tid], VelY[tid]);
 			float2 Force = make_float2(ForceX[tid], ForceY[tid]);
 
-			Velocity += 0.5f * Force * d_Params.Timestep / Mass[tid];
+			Velocity += 0.5f * Force * d_Params.Timestep / __ldg(&Mass[tid]);
 
 			VelX[tid] = Velocity.x;
 			VelY[tid] = Velocity.y;
@@ -132,9 +132,9 @@ __global__ void VelocityVerletIntegrationKernel(float *PosX, float *PosY, float 
 
 __global__ void CheckCollisionsKernel(
 	float *newForceX, float *newForceY,
-	const float * __restrict PosX, const float *__restrict PosY,
-	const float *__restrict VelX, const float *__restrict VelY,
-	const float *__restrict ForceX, const float *__restrict ForceY,
+	float *PosX, float *PosY,
+	float *VelX, float *VelY,
+	float *ForceX, float *ForceY,
 	unsigned int *cellStart, unsigned int *cellEnd,
 	unsigned int *indices,
 	int2 gridDimension, float cellSize,
@@ -146,8 +146,8 @@ __global__ void CheckCollisionsKernel(
 	for (; tid < particleCount; tid += stride)
 	{
 		float2 Force = make_float2(0.0f, 0.0f);
-		float x = PosX[tid];
-		float y = PosY[tid];
+		float x = __ldg(&PosX[tid]);
+		float y = __ldg(&PosY[tid]);
 		int2 cell = make_int2(x / cellSize, y / cellSize);
 		clamp(cell.x, 0, gridDimension.x - 1);
 		clamp(cell.y, 0, gridDimension.y - 1);
@@ -162,13 +162,13 @@ __global__ void CheckCollisionsKernel(
 				if (neighbour.x < 0 || neighbour.x >= gridDimension.x || neighbour.y < 0 || neighbour.y >= gridDimension.y) continue;
 
 				uint32_t cellId = neighbour.y * gridDimension.x + neighbour.x;
-				Force += CheckCollisionInCell(tid, cellId, make_float2(x, y), make_float2(VelX[tid], VelY[tid]), PosX, PosY, VelX, VelY, cellStart, cellEnd);
+				Force += CheckCollisionInCell(tid, cellId, make_float2(x, y), make_float2(__ldg(&VelX[tid]), __ldg(&VelY[tid])), PosX, PosY, VelX, VelY, cellStart, cellEnd);
 			}
 		}
 
-		uint32_t index = indices[tid];
-		newForceX[index] = ForceX[tid] + Force.x;
-		newForceY[index] = ForceY[tid] + Force.y;
+		uint32_t index = __ldg(&indices[tid]);
+		newForceX[index] = __ldg(&ForceX[tid]) + Force.x;
+		newForceY[index] = __ldg(&ForceY[tid]) + Force.y;
 	}
 }
 
@@ -180,6 +180,8 @@ void VerletSolver::SetParams(const SimulationParams &params)
 
 cudaError_t VerletSolver::VerletCuda()
 {
+	if (!m_Particles->Count) return cudaSuccess;
+
 	VelocityVerletIntegrationKernel<true> << <BLOCKS_PER_GRID(m_Particles->Count), THREADS_PER_BLOCK >> > (
 		m_Particles->PosX, m_Particles->PosY,
 		m_Particles->VelX, m_Particles->VelY,
@@ -189,7 +191,7 @@ cudaError_t VerletSolver::VerletCuda()
 	cudaDeviceSynchronize();
 	CUDA_CHECK(cudaGetLastError());
 
-	m_Grid->updateGrid(*m_Particles);
+	m_Grid->UpdateGrid(*m_Particles);
 
 	CheckCollisionsKernel << <BLOCKS_PER_GRID(m_Particles->Count), THREADS_PER_BLOCK >> > (
 		m_Particles->ForceX, m_Particles->ForceY,

@@ -7,7 +7,7 @@
 #include <device_launch_parameters.h>
 #include <cuda_gl_interop.h>
 
-__global__ void updateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY, float2 Scale, float4 *Color, size_t count)
+__global__ void updateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY, float2 Scale, float4 *Color, bool RandomColor, float4 StillColor, size_t count)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -15,26 +15,39 @@ __global__ void updateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY
 	{
 		int vboIdx = 8 * tid;
 		// Update position
-		*(float2 *)(&vboPtr[vboIdx]) = make_float2(PosX[tid], PosY[tid]);
+		*(float2 *)(&vboPtr[vboIdx]) = make_float2(__ldg(&PosX[tid]), __ldg(&PosY[tid]));
 		// Update scale
 		*(float2 *)(&vboPtr[vboIdx + 2]) = Scale;
 		// Update color
-		*(float4 *)(&vboPtr[vboIdx + 4]) = Color[tid];
+		*(float4 *)(&vboPtr[vboIdx + 4]) = RandomColor ? __ldg(&Color[tid]) : StillColor;
 	}
 }
 
-void Renderer::UpdateParticleInstancesCUDA(ParticleData *pData)
+cudaError_t Renderer::UpdateParticleInstancesCUDA(ParticleData *pData)
 {
+	if (!pData->Count) return cudaSuccess;
+
 	// Map OpenGL buffer for writing from CUDA
 	float *dPtr;
 	size_t numBytes;
-	cudaGraphicsMapResources(1, &m_CudaVBOResource);
-	cudaGraphicsResourceGetMappedPointer((void **)&dPtr, &numBytes, m_CudaVBOResource);
+	CUDA_CHECK(cudaGraphicsMapResources(1, &m_CudaVBOResource));
+	CUDA_CHECK(cudaGraphicsResourceGetMappedPointer((void **)&dPtr, &numBytes, m_CudaVBOResource));
 
 	// Launch kernel to update instance data
-	updateInstanceDataKernel << <BLOCKS_PER_GRID(pData->Count), THREADS_PER_BLOCK >> >(dPtr, pData->PosX, pData->PosY, pData->Scale, pData->Color, pData->Count);
+	updateInstanceDataKernel << <BLOCKS_PER_GRID(pData->Count), THREADS_PER_BLOCK >> >(
+		dPtr,
+		pData->PosX,
+		pData->PosY,
+		pData->Scale,
+		pData->Color,
+		pData->RandomColor,
+		pData->StillColor,
+		pData->Count);
 	cudaDeviceSynchronize();
+	CUDA_CHECK(cudaGetLastError());
 
 	// Unmap buffer
-	cudaGraphicsUnmapResources(1, &m_CudaVBOResource);
+	CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_CudaVBOResource));
+
+	return cudaSuccess;
 }

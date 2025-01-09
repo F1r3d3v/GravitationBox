@@ -21,7 +21,7 @@ public:
 	void InitializeParticleInstancing(size_t instanceCount);
 	void UninitializeParticleInstancing();
 	void UpdateParticleInstancesCPU(ParticleData *pData);
-	void UpdateParticleInstancesCUDA(ParticleData *pData);
+	cudaError_t UpdateParticleInstancesCUDA(ParticleData *pData);
 	void RenderParticles(unsigned int shaderProgram, size_t instanceCount);
 
 	static glm::vec2 GetViewportSize() {
@@ -36,6 +36,6 @@ private:
 	unsigned int m_ParticleVBO;
 	unsigned int m_InstanceVBO;
 
-	cudaGraphicsResource_t m_CudaVBOResource;
+	cudaGraphicsResource_t m_CudaVBOResource = nullptr;
 };
 

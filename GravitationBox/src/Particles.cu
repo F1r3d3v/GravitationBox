@@ -44,7 +44,8 @@ Particles *Particles::RandomCUDA(uint32_t count, float radius, glm::ivec2 dim)
 	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
 	cudaDeviceSynchronize();
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
+	if (cudaStatus != cudaSuccess)
+	{
 		Log::Error("CUDA Error " + std::to_string(cudaStatus) + ": " + cudaGetErrorString(cudaStatus) + ". In file '" + __FILE__ + "' on line " + std::to_string(__LINE__));
 		return nullptr;
 	}
@@ -76,6 +77,21 @@ Particles *Particles::RandomBoxCUDA(uint32_t count, float radius, glm::ivec2 dim
 	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	delete p;
+	return pGPU;
+}
+
+Particles *Particles::WaterfallCUDA(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows)
+{
+	Particles *p = WaterfallCPU(count, radius, dim, velocity, rows);
+	Particles *pGPU = new Particles(count, radius, true);
+	cudaMemcpy(pGPU->PosX, p->PosX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	pGPU->SetCount(0);
 	delete p;
 	return pGPU;
 }

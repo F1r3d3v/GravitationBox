@@ -110,7 +110,10 @@ void Renderer::UpdateParticleInstancesCPU(ParticleData *pData)
 		float instanceData[8] = {
 			pData->PosX[i], pData->PosY[i],
 			pData->Scale.x, pData->Scale.y,
-			pData->Color[i].x, pData->Color[i].y, pData->Color[i].z, pData->Color[i].w
+			pData->RandomColor ? pData->Color[i].x : pData->StillColor.x,
+			pData->RandomColor ? pData->Color[i].y : pData->StillColor.y,
+			pData->RandomColor ? pData->Color[i].z : pData->StillColor.z,
+			pData->RandomColor ? pData->Color[i].w : pData->StillColor.w
 		};
 		glBufferSubData(GL_ARRAY_BUFFER, i * 8 * sizeof(float), 8 * sizeof(float), instanceData);
 	}
