@@ -26,7 +26,6 @@ void MySimulation::OnStart()
 	m_WaterfallRows = 1.0 / 4.0 * (size.y / (2 * m_ParticleRadius));
 	m_WaterfallDelay = 3 * m_ParticleRadius / m_WaterfalVelocity;
 	m_Params.Radius = m_ParticleRadius;
-	GetRenderer()->InitializeParticleInstancing(m_ParticleCount);
 	m_Grid = new Grid(make_int2(size.x, size.y), 2 * m_ParticleRadius, m_IsCuda);
 	if (m_IsCuda)
 	{
@@ -74,6 +73,8 @@ void MySimulation::OnStart()
 	m_ParticlesCUDA->SetRandomColor(m_RandomColor);
 	m_ParticlesCPU->SetStillColor(m_ParticleColor);
 	m_ParticlesCUDA->SetStillColor(m_ParticleColor);
+
+	m_InstancedParticles = new InstancedParticles(m_ParticlesCPU, m_ParticleShader);
 	Log::Info("Simulation initialized");
 }
 
@@ -133,9 +134,9 @@ void MySimulation::OnRender(Renderer *renderer)
 {
 	renderer->Clear(m_ClearColor);
 	if (m_IsCuda)
-		m_ParticlesCUDA->DrawCUDA(renderer);
+		m_ParticlesCUDA->DrawCUDA(renderer, m_InstancedParticles);
 	else
-		m_ParticlesCPU->DrawCPU(renderer);
+		m_ParticlesCPU->DrawCPU(renderer, m_InstancedParticles);
 }
 
 void MySimulation::OnCleanup()
@@ -145,11 +146,12 @@ void MySimulation::OnCleanup()
 	delete m_ParticlesCUDA;
 	delete m_Grid;
 	delete m_Solver;
-	GetRenderer()->UninitializeParticleInstancing();
+	delete m_InstancedParticles;
 }
 
 void MySimulation::OnResize(int width, int height)
 {
+	if (width == 0 && height == 0) return;
 	m_Grid->Resize(make_int2(width, height), 2 * m_ParticleRadius);
 	m_Params.DimX = width;
 	m_Params.DimY = height;

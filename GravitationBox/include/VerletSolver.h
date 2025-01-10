@@ -11,13 +11,13 @@ public:
 
 	struct SimulationParams
 	{
-		float Timestep = 0.2f;
+		float Timestep = 0.016f;
 		float Radius = 5.0;
-		float Gravity = 1.0f;
-		float WallDampening = 0.75f;
-		float ParticleDampening = 5.0f;
-		float ParticleStiffness = 50.0f;
-		float ParticleShear = 0.1f;
+		float Gravity = 0.5f;
+		float WallDampening = 0.5f;
+		float ParticleDampening = 20.0f;
+		float ParticleStiffness = 10000.0f;
+		float ParticleShear = 100.0f;
 		int DimX = 1600;
 		int DimY = 900;
 	};
@@ -39,7 +39,7 @@ private:
 	glm::vec2 GetParticleVelocity(uint32_t id);
 
 	glm::vec2 SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB);
-	glm::vec2 CheckCollisionInCell(uint32_t tid, uint32_t cellId, glm::vec2 position, glm::vec2 velocity);
+	glm::vec2 CheckCollisionsInCell(uint32_t tid, uint32_t cellId, glm::vec2 position, glm::vec2 velocity);
 
 	template <bool stage1>
 	void UpdateParticles();

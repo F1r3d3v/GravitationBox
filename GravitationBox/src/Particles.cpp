@@ -73,8 +73,6 @@ Particles::~Particles()
 		delete[] Mass;
 		delete[] Color;
 	}
-
-	Renderer::UnloadShader(m_ShaderProgram);
 }
 
 Particles *Particles::RandomCPU(uint32_t count, float radius, glm::ivec2 dim)
@@ -237,20 +235,20 @@ void Particles::InitDrawingData()
 	m_ParticleData.Count = Count;
 }
 
-void Particles::DrawCPU(Renderer *renderer)
+void Particles::DrawCPU(Renderer *renderer, InstancedParticles *instancedParticles)
 {
 	glm::vec2 viewport = renderer->GetViewportSize();
 	m_ParticleData.Scale = make_float2(2 * Radius / viewport.x, 2 * Radius / viewport.y);
-	renderer->UpdateParticleInstancesCPU(&m_ParticleData);
-	renderer->RenderParticles(m_ShaderProgram, Count);
+	instancedParticles->UpdateParticleInstancesCPU(&m_ParticleData);
+	instancedParticles->Draw();
 }
 
-void Particles::DrawCUDA(Renderer *renderer)
+void Particles::DrawCUDA(Renderer *renderer, InstancedParticles *instancedParticles)
 {
 	glm::vec2 viewport = renderer->GetViewportSize();
 	m_ParticleData.Scale = make_float2(2 * Radius / viewport.x, 2 * Radius / viewport.y);
-	renderer->UpdateParticleInstancesCUDA(&m_ParticleData);
-	renderer->RenderParticles(m_ShaderProgram, Count);
+	instancedParticles->UpdateParticleInstancesCUDA(&m_ParticleData);
+	instancedParticles->Draw();
 }
 
 void Particles::SetCount(uint32_t count)

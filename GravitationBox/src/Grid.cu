@@ -8,7 +8,7 @@
 #include "cuda_helper.h"
 #include "cuda_helper_math.h"
 
-__global__ void calculateCellIds(float *posX, float *posY, uint32_t*cellIds, uint32_t particleCount, float cellSize, int2 gridDims) 
+__global__ void calculateCellIds(float *posX, float *posY, uint32_t *cellIds, uint32_t particleCount, float cellSize, int2 gridDims)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDims.x;
@@ -21,42 +21,53 @@ __global__ void calculateCellIds(float *posX, float *posY, uint32_t*cellIds, uin
 	}
 }
 
-__global__ void findCellStartEnd(uint32_t *sortedCellIds, uint32_t*cellStart, uint32_t*cellEnd, uint32_t particleCount)
+__global__ void findCellStartEnd(uint32_t *sortedCellIds, uint32_t *cellStart, uint32_t *cellEnd, uint32_t particleCount)
 {
+	__shared__ extern uint32_t sharedCellIds[];
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
 
-	for (; tid < particleCount; tid += stride)
+	uint32_t cellId;
+
+	// Load prev cell ids to shared memory
+	if (tid < particleCount)
+	{
+		cellId = __ldg(&sortedCellIds[tid]);
+		sharedCellIds[threadIdx.x + 1] = cellId;
+
+		if (threadIdx.x == 0 && tid > 0)
+		{
+			sharedCellIds[0] = __ldg(&sortedCellIds[tid - 1]);
+		}
+	}
+
+	__syncthreads();
+
+	if (tid < particleCount)
 	{
 		if (tid == 0)
 		{
-			cellStart[sortedCellIds[0]] = 0;
+			cellStart[cellId] = tid;
 		}
-		else
+		else if (sharedCellIds[threadIdx.x] != cellId)
 		{
-			int cell = __ldg(&sortedCellIds[tid]);
-			int prevCell = __ldg(&sortedCellIds[tid - 1]);
-
-			if (cell != prevCell)
-			{
-				cellEnd[prevCell] = tid;
-				cellStart[cell] = tid;
-			}
+			cellStart[cellId] = tid;
+			cellEnd[sharedCellIds[threadIdx.x]] = tid;
 		}
+
 		if (tid == particleCount - 1)
 		{
-			cellEnd[__ldg(&sortedCellIds[tid])] = particleCount;
+			cellEnd[cellId] = tid + 1;
 		}
 	}
 }
 
 __global__ void Reorder(uint32_t *particleIndex,
 	float *posX, float *sortedPosX,
-	float *posY, float *sortedPosY, 
+	float *posY, float *sortedPosY,
 	float *velX, float *sortedVelX,
 	float *velY, float *sortedVelY,
-	float *forceX, float *sortedForceX, 
-	float *forceY, float *sortedForceY, 
+	float *forceX, float *sortedForceX,
+	float *forceY, float *sortedForceY,
 	uint32_t particleCount)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -120,13 +131,14 @@ cudaError_t Grid::transferToCPU()
 
 cudaError_t Grid::updateGridCUDA(const Particles &particles)
 {
-	if (d_cellIds == nullptr) {
+	if (d_cellIds == nullptr)
+	{
 		allocateGPUMemory(particles.TotalCount);
 	}
 
 	if (particles.Count == 0) return cudaSuccess;
 
-	calculateCellIds<<<BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK>> > (
+	calculateCellIds << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK >> > (
 		particles.PosX,
 		particles.PosY,
 		d_cellIds,
@@ -141,7 +153,8 @@ cudaError_t Grid::updateGridCUDA(const Particles &particles)
 	thrust::sort_by_key(thrust::device, d_cellIds_ptr, d_cellIds_ptr + particles.Count, d_indices_ptr);
 	thrust::fill(thrust::device, d_cellStart_ptr, d_cellStart_ptr + h_cellStart.size(), 0xFFFFFFFF);
 
-	findCellStartEnd<<<BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK >> > (
+	uint32_t memsize = (THREADS_PER_BLOCK + 1) * sizeof(uint32_t);
+	findCellStartEnd << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK, memsize >> > (
 		d_cellIds,
 		d_cellStart,
 		d_cellEnd,

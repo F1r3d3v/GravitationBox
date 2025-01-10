@@ -5,7 +5,7 @@
 #include <random>
 #include <algorithm>
 #include <cuda_runtime.h>
-
+#include "InstancedParticles.h"
 #include "Config.h"
 
 struct ParticleData {
@@ -43,8 +43,8 @@ public:
 	static Particles *WaterfallCPU(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows);
 	static Particles *WaterfallCUDA(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows);
 
-	void DrawCPU(Renderer *renderer);
-	void DrawCUDA(Renderer *renderer);
+	void DrawCPU(Renderer *renderer, InstancedParticles *instancedParticles);
+	void DrawCUDA(Renderer *renderer, InstancedParticles *instancedParticles);
 
 	void SetCount(uint32_t count);
 	void SetStillColor(glm::vec4 color) { m_ParticleData.StillColor = *(float4*)&color; }
@@ -52,7 +52,6 @@ public:
 
 private:
 	bool m_IsCuda;
-	unsigned int m_ShaderProgram = Renderer::LoadShaderFromFile("shaders/particle.vert", "shaders/particle.frag");
 	ParticleData m_ParticleData{};
 
 	void InitDrawingData();

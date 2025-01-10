@@ -13,9 +13,9 @@ public:
 
 	// GPU data
 	uint32_t *d_cellIds = nullptr;
-	uint32_t*d_particleIndex = nullptr;
-	uint32_t*d_cellStart = nullptr;
-	uint32_t*d_cellEnd = nullptr;
+	uint32_t *d_particleIndex = nullptr;
+	uint32_t *d_cellStart = nullptr;
+	uint32_t *d_cellEnd = nullptr;
 
 	// CPU data
 	std::vector<size_t> h_cellStart;

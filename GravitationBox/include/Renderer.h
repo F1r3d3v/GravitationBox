@@ -18,24 +18,9 @@ public:
 	static void UnloadShader(unsigned int shaderProgram);
 	void Clear(glm::vec4 color);
 
-	void InitializeParticleInstancing(size_t instanceCount);
-	void UninitializeParticleInstancing();
-	void UpdateParticleInstancesCPU(ParticleData *pData);
-	cudaError_t UpdateParticleInstancesCUDA(ParticleData *pData);
-	void RenderParticles(unsigned int shaderProgram, size_t instanceCount);
-
-	static glm::vec2 GetViewportSize() {
-		if (m_Window) return glm::vec2(m_Window->GetWidth(), m_Window->GetHeight());
-		else return glm::vec2(0.0f);
-	}
+	static glm::vec2 GetViewportSize();
 
 private:
 	static Window *m_Window;
-
-	unsigned int m_ParticleVAO;
-	unsigned int m_ParticleVBO;
-	unsigned int m_InstanceVBO;
-
-	cudaGraphicsResource_t m_CudaVBOResource = nullptr;
 };
 

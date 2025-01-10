@@ -11,7 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\InstancedObject.cpp" />
     <ClCompile Include="src\Grid.cpp" />
+    <ClCompile Include="src\InstancedParticles.cpp" />
     <ClCompile Include="src\Particles.cpp" />
     <ClCompile Include="src\Log.cpp" />
     <ClCompile Include="src\Input.cpp" />
@@ -31,9 +33,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\cuda_helper_math.h" />
+    <ClInclude Include="include\GraphicsObject.h" />
     <ClInclude Include="include\Grid.h" />
     <ClInclude Include="include\Config.h" />
     <ClInclude Include="include\cuda_helper.h" />
+    <ClInclude Include="include\InstancedParticles.h" />
     <ClInclude Include="include\Particles.h" />
     <ClInclude Include="include\ImGUI_Impl.h" />
     <ClInclude Include="include\Window.h" />
@@ -43,11 +47,12 @@
     <ClInclude Include="include\Input.h" />
     <ClInclude Include="include\Log.h" />
     <ClInclude Include="include\VerletSolver.h" />
+    <ClInclude Include="include\InstancedObject.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\Grid.cu" />
+    <CudaCompile Include="src\InstancedParticles.cu" />
     <CudaCompile Include="src\Particles.cu" />
-    <CudaCompile Include="src\Renderer.cu" />
     <CudaCompile Include="src\VerletSolver.cu" />
   </ItemGroup>
   <ItemGroup>

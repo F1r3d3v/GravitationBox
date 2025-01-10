@@ -2,7 +2,7 @@
 
 VerletSolver::VerletSolver(Particles *p, Grid *g) : m_Particles(p), m_Grid(g)
 {
-	g->UpdateGrid(*m_Particles);
+	//g->UpdateGrid(*m_Particles);
 }
 
 VerletSolver::~VerletSolver()
@@ -70,7 +70,7 @@ glm::vec2 VerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocityA,
 	return Force;
 }
 
-glm::vec2 VerletSolver::CheckCollisionInCell(uint32_t id, uint32_t cellId, glm::vec2 position, glm::vec2 velocity)
+glm::vec2 VerletSolver::CheckCollisionsInCell(uint32_t id, uint32_t cellId, glm::vec2 position, glm::vec2 velocity)
 {
 	glm::vec2 Force(0.0f, 0.0f);
 
@@ -113,7 +113,7 @@ void VerletSolver::CheckCollisions()
 				if (neighbour.x < 0 || neighbour.x >= m_Grid->m_Dim.x || neighbour.y < 0 || neighbour.y >= m_Grid->m_Dim.y) continue;
 
 				uint32_t cellId = neighbour.y * m_Grid->m_Dim.x + neighbour.x;
-				Force += CheckCollisionInCell(id, cellId, { x, y }, { m_Particles->VelX[id], m_Particles->VelY[id] });
+				Force += CheckCollisionsInCell(id, cellId, { x, y }, { m_Particles->VelX[id], m_Particles->VelY[id] });
 			}
 		}
 

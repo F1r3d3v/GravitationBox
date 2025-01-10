@@ -50,15 +50,14 @@ void Grid::updateGridCPU(const Particles &particles) {
 		});
 
 	std::sort(h_cellIds.begin(), h_cellIds.end());
-
-	std::fill(h_cellStart.begin(), h_cellStart.end(), 0);
-	std::fill(h_cellEnd.begin(), h_cellEnd.end(), 0);
+	std::fill(h_cellStart.begin(), h_cellStart.end(), 0xFFFFFFFF);
 
 	int currentCell = h_cellIds[0];
 	h_cellStart[currentCell] = 0;
-
-	for (size_t i = 1; i < particles.Count; i++) {
-		if (h_cellIds[i] != currentCell) {
+	for (size_t i = 1; i < particles.Count; i++)
+	{
+		if (h_cellIds[i] != currentCell)
+		{
 			h_cellEnd[currentCell] = i;
 			currentCell = h_cellIds[i];
 			h_cellStart[currentCell] = i;
@@ -84,4 +83,8 @@ void Grid::Resize(int2 dimensions, float size)
 	int totalCells = m_Dim.x * m_Dim.y;
 	h_cellStart.resize(totalCells);
 	h_cellEnd.resize(totalCells);
+	if (m_IsCuda)
+	{
+		freeGPUMemory();
+	}
 }

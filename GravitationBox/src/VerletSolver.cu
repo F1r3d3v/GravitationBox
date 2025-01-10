@@ -7,8 +7,37 @@
 
 __constant__ VerletSolver::SimulationParams d_Params;
 
-__device__ void CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY, float *VelX, float *VelY, float radius, int2 worldDim)
+__device__ float2 collideFloor(float2 position, float2 velocity, float mass, float2 floorPos)
 {
+	// calculate relative position
+	float2 relPos = floorPos - position;
+
+	float dist = length(relPos);
+
+	float2 Force = make_float2(0.0f);
+	float2 Down = make_float2(0.0f, 1.0f);
+
+	if (dist < d_Params.Radius)
+	{
+		float2 norm = relPos / dist;
+
+		float2 relVel = -velocity;
+		float  relVelDot = dot(relVel, norm);
+
+		// Normal force
+		Force = -mass * d_Params.Gravity * Down;
+
+		// Damping force
+		if (relVelDot < 0.0f) Force += d_Params.WallDampening * relVelDot * norm;
+	}
+
+	return Force;
+}
+
+__device__ float2 CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY, float *VelX, float *VelY, float *Mass, float radius, int2 worldDim)
+{
+	float2 Force = make_float2(0.0f);
+
 	// Left and right walls
 	if (PosX[tid] < radius)
 	{
@@ -24,6 +53,8 @@ __device__ void CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY,
 	// Top and bottom walls
 	if (PosY[tid] < radius)
 	{
+		Force += collideFloor(make_float2(PosX[tid], PosY[tid]), make_float2(VelX[tid], VelY[tid]), Mass[tid], make_float2(PosX[tid], 0.0f));
+
 		PosY[tid] = radius;
 		VelY[tid] *= -d_Params.WallDampening;
 	}
@@ -32,6 +63,8 @@ __device__ void CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY,
 		PosY[tid] = worldDim.y - radius;
 		VelY[tid] *= -d_Params.WallDampening;
 	}
+
+	return Force;
 }
 
 __device__ float2 SolveCollision(float2 positionA, float2 velocityA, float2 positionB, float2 velocityB)
@@ -62,7 +95,7 @@ __device__ float2 SolveCollision(float2 positionA, float2 velocityA, float2 posi
 	return Force;
 }
 
-__device__ float2 CheckCollisionInCell(uint32_t tid, uint32_t cellId,
+__device__ float2 CheckCollisionsInCell(uint32_t tid, uint32_t cellId,
 	float2 position, float2 velocity,
 	float *PosX, float *PosY,
 	float *VelX, float *VelY,
@@ -111,10 +144,11 @@ __global__ void VelocityVerletIntegrationKernel(float *PosX, float *PosY, float 
 			PosY[tid] = Position.y;
 			VelX[tid] = Velocity.x;
 			VelY[tid] = Velocity.y;
+
+			Force += CheckCollisionsWithWalls(tid, PosX, PosY, VelX, VelY, Mass, d_Params.Radius, make_int2(d_Params.DimX, d_Params.DimY));
+
 			ForceX[tid] = Force.x;
 			ForceY[tid] = Force.y;
-
-			CheckCollisionsWithWalls(tid, PosX, PosY, VelX, VelY, d_Params.Radius, make_int2(d_Params.DimX, d_Params.DimY));
 		}
 		else
 		{
@@ -162,7 +196,7 @@ __global__ void CheckCollisionsKernel(
 				if (neighbour.x < 0 || neighbour.x >= gridDimension.x || neighbour.y < 0 || neighbour.y >= gridDimension.y) continue;
 
 				uint32_t cellId = neighbour.y * gridDimension.x + neighbour.x;
-				Force += CheckCollisionInCell(tid, cellId, make_float2(x, y), make_float2(__ldg(&VelX[tid]), __ldg(&VelY[tid])), PosX, PosY, VelX, VelY, cellStart, cellEnd);
+				Force += CheckCollisionsInCell(tid, cellId, make_float2(x, y), make_float2(__ldg(&VelX[tid]), __ldg(&VelY[tid])), PosX, PosY, VelX, VelY, cellStart, cellEnd);
 			}
 		}
 

@@ -135,6 +135,13 @@ void Simulation::SetVSync(bool enabled)
 	glfwSwapInterval(enabled);
 }
 
+glm::ivec2 Simulation::GetViewport() const
+{
+	int width, height;
+	glfwGetFramebufferSize(m_Window->GetHandle(), &width, &height);
+	return glm::ivec2(width, height);
+}
+
 void Simulation::Initialize()
 {
 	Log::Init();
