@@ -1,13 +1,13 @@
 #include "InstancedParticles.h"
 #include "glad/gl.h"
-#include "cuda_helper.h"
+#include "cuda/cuda_helper.h"
 #include "Particles.h"
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cuda_gl_interop.h>
 
-__global__ void updateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY, float2 Scale, float4 *Color, bool RandomColor, float4 StillColor, size_t count)
+__global__ void UpdateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY, float2 Scale, float4 *Color, bool RandomColor, float4 StillColor, size_t count)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -34,7 +34,7 @@ cudaError_t InstancedParticles::UpdateParticleInstancesCUDA(ParticleData *pData)
 	CUDA_CHECK(cudaGraphicsResourceGetMappedPointer((void **)&dPtr, &numBytes, m_CudaVBOResource));
 
 	// Launch kernel to update instance data
-	updateInstanceDataKernel << <BLOCKS_PER_GRID(pData->Count), THREADS_PER_BLOCK >> > (
+	UpdateInstanceDataKernel << <BLOCKS_PER_GRID(pData->Count), THREADS_PER_BLOCK >> > (
 		dPtr,
 		pData->PosX,
 		pData->PosY,

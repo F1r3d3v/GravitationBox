@@ -1,10 +1,10 @@
 #include "Particles.h"  
-#include "Log.h"
-#include "cuda_helper.h"  
+#include "engine/Log.h"
+#include "cuda/cuda_helper.h"  
 #include <device_launch_parameters.h>  
 #include <curand_kernel.h>  
 
-__global__ void randomParticlesKernel(float *posX, float *posY, float *velX, float *velY, float *mass, glm::vec4 *color, size_t count, float radius, glm::ivec2 dim, uint64_t seed)
+__global__ void RandomParticlesKernel(float *posX, float *posY, float *velX, float *velY, float *mass, glm::vec4 *color, size_t count, float radius, glm::ivec2 dim, uint64_t seed)
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -40,8 +40,7 @@ Particles *Particles::RandomCUDA(uint32_t count, float radius, glm::ivec2 dim)
 	Particles *p = new Particles(count, radius, true);
 	time_t seed = time(NULL);
 
-	// Launch kernel
-	randomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
+	RandomParticlesKernel << <BLOCKS_PER_GRID(count), THREADS_PER_BLOCK >> > (p->PosX, p->PosY, p->VelX, p->VelY, p->Mass, p->Color, count, radius, dim, seed);
 	cudaDeviceSynchronize();
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess)
@@ -56,13 +55,14 @@ Particles *Particles::RandomCUDA(uint32_t count, float radius, glm::ivec2 dim)
 Particles *Particles::RandomCircleCUDA(uint32_t count, float radius, glm::ivec2 dim)
 {
 	Particles *p = RandomCircleCPU(count, radius, dim);
-	Particles *pGPU = new Particles(p->Count, radius, true);
-	cudaMemcpy(pGPU->PosX, p->PosX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->PosY, p->PosY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->VelX, p->VelX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	Particles *pGPU = new Particles(count, radius, true);
+	cudaMemcpy(pGPU->PosX, p->PosX, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	pGPU->SetCount(p->Count);
 	delete p;
 	return pGPU;
 }
@@ -70,13 +70,14 @@ Particles *Particles::RandomCircleCUDA(uint32_t count, float radius, glm::ivec2 
 Particles *Particles::RandomBoxCUDA(uint32_t count, float radius, glm::ivec2 dim)
 {
 	Particles *p = RandomBoxCPU(count, radius, dim);
-	Particles *pGPU = new Particles(p->Count, radius, true);
-	cudaMemcpy(pGPU->PosX, p->PosX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->PosY, p->PosY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->VelX, p->VelX, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->VelY, p->VelY, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->Mass, p->Mass, pGPU->Count * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(pGPU->Color, p->Color, pGPU->Count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	Particles *pGPU = new Particles(count, radius, true);
+	cudaMemcpy(pGPU->PosX, p->PosX, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, count * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, count * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	pGPU->SetCount(p->Count);
 	delete p;
 	return pGPU;
 }

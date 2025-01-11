@@ -9,8 +9,6 @@ public:
 	~InstancedObject();
 
 protected:
-	virtual void BindBuffers() = 0;
-
 	size_t m_InstanceCount;
 	unsigned int m_ShaderProgram;
 	unsigned int m_ParticleVAO;

@@ -1,16 +1,17 @@
 #include "MySimulation.h"
-#include "Log.h"
-#include "Renderer.h"
-#include "Input.h"
+#include "engine/Log.h"
+#include "engine/Renderer.h"
+#include "engine/Input.h"
 #include <glm.hpp>
 #include "Config.h"
-#include "cuda_helper.h"
+#include "cuda/cuda_helper.h"
 
 MySimulation::MySimulation(std::string title, int width, int height)
 	: Simulation(title, width, height)
 {
 	InitCUDA();
-	m_VSync = GetVSync();
+	SetVSync(false);
+	m_VSync = false;
 }
 
 MySimulation::~MySimulation()
@@ -259,10 +260,10 @@ void MySimulation::OnImGuiRender()
 			m_Substeps = 1;
 		ImGui::InputFloat("Timestep", &m_Params.Timestep);
 		ImGui::InputFloat("Gravity", &m_Params.Gravity);
-		ImGui::InputFloat("Wall Dampening", &m_Params.WallDampening);
-		ImGui::InputFloat("Particle Dampening", &m_Params.ParticleDampening);
-		ImGui::InputFloat("Particle Stiffness", &m_Params.ParticleStiffness);
-		ImGui::InputFloat("Particle Shear", &m_Params.ParticleShear);
+		ImGui::InputFloat("Walls Dampening", &m_Params.WallDampening);
+		ImGui::InputFloat("Particles Dampening", &m_Params.ParticleDampening);
+		ImGui::InputFloat("Particles Stiffness", &m_Params.ParticleStiffness);
+		ImGui::InputFloat("Particles Friction", &m_Params.ParticleFriction);
 	}
 
 	ImGui::Spacing();

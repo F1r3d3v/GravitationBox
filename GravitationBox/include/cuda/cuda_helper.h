@@ -1,5 +1,5 @@
 #pragma once
-#include "log.h"
+#include "engine/Log.h"
 
 constexpr int THREADS_PER_BLOCK = 256;
 static int BLOCKS_PER_GRID(int x) { return (x + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK; }

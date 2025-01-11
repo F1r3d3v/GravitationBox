@@ -1,66 +1,73 @@
 #include "VerletSolver.h"
-#include "cuda_helper.h"
+#include "cuda/cuda_helper.h"
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include "cuda_helper_math.h"
+#include "cuda/cuda_helper_math.h"
 #include "Config.h"
 
 __constant__ VerletSolver::SimulationParams d_Params;
 
-__device__ float2 collideFloor(float2 position, float2 velocity, float mass, float2 floorPos)
+__device__ float2 CollideFloor(float2 position, float2 velocity, float mass, float2 floorPosition)
 {
-	// calculate relative position
-	float2 relPos = floorPos - position;
+	float2 positionDelta = floorPosition - position;
 
-	float dist = length(relPos);
+	float dist = length(positionDelta);
 
 	float2 Force = make_float2(0.0f);
 	float2 Down = make_float2(0.0f, 1.0f);
 
 	if (dist < d_Params.Radius)
 	{
-		float2 norm = relPos / dist;
+		float2 normal = positionDelta / dist;
 
-		float2 relVel = -velocity;
-		float  relVelDot = dot(relVel, norm);
+		float2 relativeVelocity = -velocity;
+		float  velocityAlongNormal = dot(relativeVelocity, normal);
+		float2 normalVelocity = velocityAlongNormal * normal;
+		float2 tangentVelocity = relativeVelocity - normalVelocity;
 
 		// Normal force
 		Force = -mass * d_Params.Gravity * Down;
 
 		// Damping force
-		if (relVelDot < 0.0f) Force += d_Params.WallDampening * relVelDot * norm;
+		if (velocityAlongNormal < 0.0f) Force += d_Params.WallDampening * normalVelocity;
+
+		// Friction force
+		Force += d_Params.ParticleFriction * tangentVelocity;
 	}
 
 	return Force;
 }
 
-__device__ float2 CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY, float *VelX, float *VelY, float *Mass, float radius, int2 worldDim)
+__device__ float2 CheckCollisionsWithWalls(uint32_t tid, float *PosX, float *PosY, float *VelX, float *VelY, float *Mass)
 {
 	float2 Force = make_float2(0.0f);
 
 	// Left and right walls
-	if (PosX[tid] < radius)
+	if (PosX[tid] < d_Params.Radius)
 	{
-		PosX[tid] = radius;
+		PosX[tid] = d_Params.Radius;
 		VelX[tid] *= -d_Params.WallDampening;
 	}
-	else if (PosX[tid] > worldDim.x - radius)
+	else if (PosX[tid] > d_Params.DimX - d_Params.Radius)
 	{
-		PosX[tid] = worldDim.x - radius;
+		PosX[tid] = d_Params.DimX - d_Params.Radius;
 		VelX[tid] *= -d_Params.WallDampening;
 	}
 
 	// Top and bottom walls
-	if (PosY[tid] < radius)
+	if (PosY[tid] < d_Params.Radius)
 	{
-		Force += collideFloor(make_float2(PosX[tid], PosY[tid]), make_float2(VelX[tid], VelY[tid]), Mass[tid], make_float2(PosX[tid], 0.0f));
+		Force += CollideFloor(make_float2(PosX[tid], PosY[tid]),
+			make_float2(VelX[tid], VelY[tid]),
+			Mass[tid],
+			make_float2(PosX[tid], 0.0f));
 
-		PosY[tid] = radius;
+		PosY[tid] = d_Params.Radius;
 		VelY[tid] *= -d_Params.WallDampening;
 	}
-	else if (PosY[tid] > worldDim.y - radius)
+	else if (PosY[tid] > d_Params.DimY - d_Params.Radius)
 	{
-		PosY[tid] = worldDim.y - radius;
+		PosY[tid] = d_Params.DimY - d_Params.Radius;
 		VelY[tid] *= -d_Params.WallDampening;
 	}
 
@@ -77,19 +84,20 @@ __device__ float2 SolveCollision(float2 positionA, float2 velocityA, float2 posi
 	float collideDistance = d_Params.Radius * 2.0f;
 	if (distance < collideDistance)
 	{
-		// Spring force
 		float2 normal = positionDelta / distance;
-		Force = -d_Params.ParticleStiffness * (collideDistance - distance) * normal;
-
-		// Damping force
 		float2 relativeVelocity = velocityB - velocityA;
 		float velocityAlongNormal = dot(relativeVelocity, normal);
 		float2 normalVelocity = velocityAlongNormal * normal;
+		float2 tangentVelocity = relativeVelocity - normalVelocity;
+
+		// Spring force
+		Force = -d_Params.ParticleStiffness * (collideDistance - distance) * normal;
+
+		// Damping force
 		if (velocityAlongNormal < 0) Force += d_Params.ParticleDampening * normalVelocity;
 
 		// Friction force
-		float2 tangentVelocity = relativeVelocity - normalVelocity;
-		Force += d_Params.ParticleShear * tangentVelocity;
+		Force += d_Params.ParticleFriction * tangentVelocity;
 	}
 
 	return Force;
@@ -105,7 +113,7 @@ __device__ float2 CheckCollisionsInCell(uint32_t tid, uint32_t cellId,
 
 	uint32_t startIdx = __ldg(&cellStart[cellId]);
 
-	if (startIdx == 0xffffffff) return Force;
+	if (startIdx == 0xFFFFFFFF) return Force;
 
 	uint32_t endIdx = __ldg(&cellEnd[cellId]);
 
@@ -145,7 +153,7 @@ __global__ void VelocityVerletIntegrationKernel(float *PosX, float *PosY, float 
 			VelX[tid] = Velocity.x;
 			VelY[tid] = Velocity.y;
 
-			Force += CheckCollisionsWithWalls(tid, PosX, PosY, VelX, VelY, Mass, d_Params.Radius, make_int2(d_Params.DimX, d_Params.DimY));
+			Force += CheckCollisionsWithWalls(tid, PosX, PosY, VelX, VelY, Mass);
 
 			ForceX[tid] = Force.x;
 			ForceY[tid] = Force.y;
@@ -192,7 +200,7 @@ __global__ void CheckCollisionsKernel(
 #pragma unroll
 			for (int j = -1; j <= 1; ++j)
 			{
-				int2 neighbour = cell + make_int2(i, j);
+				int2 neighbour = make_int2(cell.x + i, cell.y + j);
 				if (neighbour.x < 0 || neighbour.x >= gridDimension.x || neighbour.y < 0 || neighbour.y >= gridDimension.y) continue;
 
 				uint32_t cellId = neighbour.y * gridDimension.x + neighbour.x;

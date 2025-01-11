@@ -1,5 +1,5 @@
 #pragma once
-#include "InstancedObject.h"
+#include "engine/InstancedObject.h"
 
 #include <cuda_runtime.h>
 
@@ -15,9 +15,6 @@ public:
 
 	void UpdateParticleInstancesCPU(ParticleData *pData);
 	cudaError_t UpdateParticleInstancesCUDA(ParticleData *pData);
-
-protected:
-	void BindBuffers() override;
 
 private:
 	cudaGraphicsResource_t m_CudaVBOResource = nullptr;

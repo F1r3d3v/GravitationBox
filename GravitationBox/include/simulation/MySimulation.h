@@ -1,5 +1,5 @@
 #pragma once
-#include "Simulation.h"
+#include "engine/Simulation.h"
 #include "Particles.h"
 #include "VerletSolver.h"
 #include "InstancedParticles.h"
@@ -36,12 +36,12 @@ private:
 	VerletSolver::SimulationParams m_Params;
 
 	bool m_IsPaused;
-	bool m_IsCuda = true;
+	bool m_IsCuda = false;
 	bool m_VSync;
 	bool m_IsWaterfall = false;
 	bool m_RandomColor = false;
 
-	int m_Selecteditem = 3;
+	int m_Selecteditem = 1;
 	int m_WaterfallRows;
 	float m_WaterfallDelay;
 	float m_WaterfalVelocity = 20.0f;

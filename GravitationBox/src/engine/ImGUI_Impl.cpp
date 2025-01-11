@@ -3,8 +3,8 @@
 #ifndef IMGUI_DISABLE
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
 #define IMGUI_IMPL_OPENGL_LOADER_GLFW_GLAD
-#include "ImGUI_Impl.h"
-#include <glad\gl.h>
+#include "engine/ImGUI_Impl.h"
+#include <glad/gl.h>
 
 #pragma region GLFW
 

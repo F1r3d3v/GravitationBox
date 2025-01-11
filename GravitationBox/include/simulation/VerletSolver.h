@@ -17,7 +17,7 @@ public:
 		float WallDampening = 0.5f;
 		float ParticleDampening = 20.0f;
 		float ParticleStiffness = 10000.0f;
-		float ParticleShear = 100.0f;
+		float ParticleFriction = 100.0f;
 		int DimX = 1600;
 		int DimY = 900;
 	};
@@ -33,17 +33,12 @@ private:
 	Grid *m_Grid;
 	SimulationParams m_Params;
 
-	void SetParticlePosition(uint32_t id, glm::vec2 pos);
-	glm::vec2 GetParticlePosition(uint32_t id);
-	void SetParticleVelocity(uint32_t id, glm::vec2 vel);
-	glm::vec2 GetParticleVelocity(uint32_t id);
-
 	glm::vec2 SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB);
 	glm::vec2 CheckCollisionsInCell(uint32_t tid, uint32_t cellId, glm::vec2 position, glm::vec2 velocity);
+	glm::vec2 CollideFloor(glm::vec2 position, glm::vec2 velocity, float mass, glm::vec2 floorPosition);
+	glm::vec2 CheckCollisionsWithWalls(uint32_t id);
 
 	template <bool stage1>
 	void UpdateParticles();
-
-	void CheckCollisionsWithWalls(uint32_t id);
 	void CheckCollisions();
 };

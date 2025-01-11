@@ -1,4 +1,4 @@
-#include "InstancedObject.h"
+#include "engine/InstancedObject.h"
 #include "glad/gl.h"
 
 InstancedObject::InstancedObject(size_t InstanceCount, uint32_t ShaderProgram)
@@ -8,8 +8,6 @@ InstancedObject::InstancedObject(size_t InstanceCount, uint32_t ShaderProgram)
 	glGenBuffers(1, &m_ParticleVBO);
 	glGenBuffers(1, &m_ParticleEBO);
 	glGenBuffers(1, &m_InstanceVBO);
-
-	BindBuffers();
 }
 
 InstancedObject::~InstancedObject()

@@ -11,19 +11,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\InstancedObject.cpp" />
-    <ClCompile Include="src\Grid.cpp" />
-    <ClCompile Include="src\InstancedParticles.cpp" />
-    <ClCompile Include="src\Particles.cpp" />
-    <ClCompile Include="src\Log.cpp" />
-    <ClCompile Include="src\Input.cpp" />
-    <ClCompile Include="src\MySimulation.cpp" />
-    <ClCompile Include="src\Simulation.cpp" />
-    <ClCompile Include="src\ImGUI_Impl.cpp" />
-    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\engine\InstancedObject.cpp" />
+    <ClCompile Include="src\simulation\Grid.cpp" />
+    <ClCompile Include="src\simulation\InstancedParticles.cpp" />
+    <ClCompile Include="src\simulation\Particles.cpp" />
+    <ClCompile Include="src\engine\Log.cpp" />
+    <ClCompile Include="src\engine\Input.cpp" />
+    <ClCompile Include="src\simulation\MySimulation.cpp" />
+    <ClCompile Include="src\engine\Simulation.cpp" />
+    <ClCompile Include="src\engine\ImGUI_Impl.cpp" />
+    <ClCompile Include="src\engine\Renderer.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Window.cpp" />
-    <ClCompile Include="src\VerletSolver.cpp" />
+    <ClCompile Include="src\engine\Window.cpp" />
+    <ClCompile Include="src\simulation\VerletSolver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="lib\glfw\lib-vc2022\glfw3.dll">
@@ -32,28 +32,28 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\cuda_helper_math.h" />
-    <ClInclude Include="include\GraphicsObject.h" />
-    <ClInclude Include="include\Grid.h" />
-    <ClInclude Include="include\Config.h" />
-    <ClInclude Include="include\cuda_helper.h" />
-    <ClInclude Include="include\InstancedParticles.h" />
-    <ClInclude Include="include\Particles.h" />
-    <ClInclude Include="include\ImGUI_Impl.h" />
-    <ClInclude Include="include\Window.h" />
-    <ClInclude Include="include\Renderer.h" />
-    <ClInclude Include="include\Simulation.h" />
-    <ClInclude Include="include\MySimulation.h" />
-    <ClInclude Include="include\Input.h" />
-    <ClInclude Include="include\Log.h" />
-    <ClInclude Include="include\VerletSolver.h" />
-    <ClInclude Include="include\InstancedObject.h" />
+    <ClInclude Include="include\cuda\cuda_helper_math.h" />
+    <ClInclude Include="include\engine\GraphicsObject.h" />
+    <ClInclude Include="include\simulation\Grid.h" />
+    <ClInclude Include="include\simulation\Config.h" />
+    <ClInclude Include="include\cuda\cuda_helper.h" />
+    <ClInclude Include="include\simulation\InstancedParticles.h" />
+    <ClInclude Include="include\simulation\Particles.h" />
+    <ClInclude Include="include\engine\ImGUI_Impl.h" />
+    <ClInclude Include="include\engine\Window.h" />
+    <ClInclude Include="include\engine\Renderer.h" />
+    <ClInclude Include="include\engine\Simulation.h" />
+    <ClInclude Include="include\simulation\MySimulation.h" />
+    <ClInclude Include="include\engine\Input.h" />
+    <ClInclude Include="include\engine\Log.h" />
+    <ClInclude Include="include\simulation\VerletSolver.h" />
+    <ClInclude Include="include\engine\InstancedObject.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\Grid.cu" />
-    <CudaCompile Include="src\InstancedParticles.cu" />
-    <CudaCompile Include="src\Particles.cu" />
-    <CudaCompile Include="src\VerletSolver.cu" />
+    <CudaCompile Include="src\simulation\Grid.cu" />
+    <CudaCompile Include="src\simulation\InstancedParticles.cu" />
+    <CudaCompile Include="src\simulation\Particles.cu" />
+    <CudaCompile Include="src\simulation\VerletSolver.cu" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="shaders\particle.frag">
@@ -110,7 +110,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>GLAD_API_CALL_EXPORT;IMGUI_API_CALL_EXPORT;WIN32;WIN64;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)GLAD\include;$(ProjectDir)lib\glfw\include;$(ProjectDir)lib\glm;$(SolutionDir)ImGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\simulation;$(ProjectDir)include;$(SolutionDir)GLAD\include;$(ProjectDir)lib\glfw\include;$(ProjectDir)lib\glm;$(SolutionDir)ImGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -131,7 +131,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>GLAD_API_CALL_EXPORT;IMGUI_API_CALL_EXPORT;WIN32;WIN64;_CRT_SECURE_NO_WARNINGS;NOMINMAX;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)GLAD\include;$(ProjectDir)lib\glfw\include;$(ProjectDir)lib\glm;$(SolutionDir)ImGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include\simulation;$(ProjectDir)include;$(SolutionDir)GLAD\include;$(ProjectDir)lib\glfw\include;$(ProjectDir)lib\glm;$(SolutionDir)ImGUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

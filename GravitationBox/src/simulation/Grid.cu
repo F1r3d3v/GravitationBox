@@ -5,8 +5,8 @@
 #include <thrust/fill.h>
 #include <thrust/execution_policy.h>
 #include <device_launch_parameters.h>
-#include "cuda_helper.h"
-#include "cuda_helper_math.h"
+#include "cuda/cuda_helper.h"
+#include "cuda/cuda_helper_math.h"
 
 __global__ void calculateCellIds(float *posX, float *posY, uint32_t *cellIds, uint32_t particleCount, float cellSize, int2 gridDims)
 {

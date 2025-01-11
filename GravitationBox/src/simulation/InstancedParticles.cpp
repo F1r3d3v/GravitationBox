@@ -1,46 +1,12 @@
 #include "InstancedParticles.h"
 #include "glad/gl.h"
-#include "cuda_helper.h"
+#include "cuda/cuda_helper.h"
 #include "cuda_gl_interop.h"
 #include "Particles.h"
 #include "glm.hpp"
 
 InstancedParticles::InstancedParticles(Particles *p, uint32_t ShaderProgram)
 	: InstancedObject(p->TotalCount, ShaderProgram)
-{
-
-}
-
-InstancedParticles::~InstancedParticles()
-{
-	cudaGraphicsUnregisterResource(m_CudaVBOResource);
-	m_CudaVBOResource = nullptr;
-}
-
-void InstancedParticles::Draw()
-{
-	// Bind shader
-	glm::vec2 viewport = Renderer::GetViewportSize();
-	glUseProgram(m_ShaderProgram);
-	glUniform2f(glGetUniformLocation(m_ShaderProgram, "Viewport"), viewport.x, viewport.y);
-
-	// Enable blending
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// Draw particles
-	glBindVertexArray(m_ParticleVAO);
-	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(m_InstanceCount));
-	glBindVertexArray(0);
-
-	// Disable blending
-	glDisable(GL_BLEND);
-
-	// Unbind shader
-	glUseProgram(0);
-}
-
-void InstancedParticles::BindBuffers()
 {
 	// Vertex data for a quad (centered at origin)
 	float quadVertices[] = {
@@ -107,6 +73,35 @@ void InstancedParticles::BindBuffers()
 	// Unbind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+}
+
+InstancedParticles::~InstancedParticles()
+{
+	cudaGraphicsUnregisterResource(m_CudaVBOResource);
+	m_CudaVBOResource = nullptr;
+}
+
+void InstancedParticles::Draw()
+{
+	// Bind shader
+	glm::vec2 viewport = Renderer::GetViewportSize();
+	glUseProgram(m_ShaderProgram);
+	glUniform2f(glGetUniformLocation(m_ShaderProgram, "Viewport"), viewport.x, viewport.y);
+
+	// Enable blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Draw particles
+	glBindVertexArray(m_ParticleVAO);
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(m_InstanceCount));
+	glBindVertexArray(0);
+
+	// Disable blending
+	glDisable(GL_BLEND);
+
+	// Unbind shader
+	glUseProgram(0);
 }
 
 void InstancedParticles::UpdateParticleInstancesCPU(ParticleData *pData)

@@ -1,6 +1,6 @@
 #include "Particles.h"
-#include "Renderer.h"
-#include "cuda_helper.h"
+#include "engine/Renderer.h"
+#include "cuda/cuda_helper.h"
 
 #define _USE_MATH_DEFINES	
 #include <math.h>
@@ -148,8 +148,8 @@ Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 d
 			float l = sqrtf(dx * dx + dy * dy);
 			if ((l <= circle_radius - radius) && (index < count))
 			{
-				p->PosX[index] = center.x + dx + (1.0 + jitter(gen));
-				p->PosY[index] = center.y + dy + (1.0 + jitter(gen));
+				p->PosX[index] = center.x + dx + jitter(gen);
+				p->PosY[index] = center.y + dy + jitter(gen);
 				p->VelX[index] = 0;
 				p->VelY[index] = 0;
 				p->Mass[index] = mass_dist(gen);
@@ -215,7 +215,7 @@ Particles *Particles::WaterfallCPU(uint32_t count, float radius, glm::ivec2 dim,
 	for (size_t i = 0; i < count; ++i)
 	{
 		p->PosX[i] = radius + jitter(gen);
-		p->PosY[i] = 1.5f * radius + (i % rows) * (3.0f * radius);
+		p->PosY[i] = 1.5f * radius + (i % rows) * (3.0f * radius) + jitter(gen);
 		p->VelX[i] = velocity;
 		p->VelY[i] = 0.0f;
 		p->Mass[i] = mass_dist(gen);
