@@ -18,10 +18,10 @@ public:
 	uint32_t *d_cellEnd = nullptr;
 
 	// CPU data
+	std::vector<size_t> h_cellIds;
+	std::vector<size_t> h_particleIndex;
 	std::vector<size_t> h_cellStart;
 	std::vector<size_t> h_cellEnd;
-	std::vector<size_t> h_cellIds;
-	std::vector<size_t> h_indices;
 
 	int2 m_WorldDim;
 	int2 m_Dim;

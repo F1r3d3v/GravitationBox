@@ -29,13 +29,19 @@ Particles::Particles(uint32_t count, float radius, bool isCUDA) : TotalCount(cou
 	else
 	{
 		PosX = new float[Count];
+		SortedPosX = new float[Count];
 		PosY = new float[Count];
+		SortedPosY = new float[Count];
 		VelX = new float[Count];
+		SortedVelX = new float[Count];
 		VelY = new float[Count];
+		SortedVelY = new float[Count];
 		ForceX = new float[Count];
 		memset(ForceX, 0, Count * sizeof(float));
+		SortedForceX = new float[Count];
 		ForceY = new float[Count];
 		memset(ForceY, 0, Count * sizeof(float));
+		SortedForceY = new float[Count];
 		Mass = new float[Count];
 		Color = new glm::vec4[Count];
 	}
@@ -65,11 +71,17 @@ Particles::~Particles()
 	else
 	{
 		delete[] PosX;
+		delete[] SortedPosX;
 		delete[] PosY;
+		delete[] SortedPosY;
 		delete[] VelX;
+		delete[] SortedVelX;
 		delete[] VelY;
+		delete[] SortedVelY;
 		delete[] ForceX;
+		delete[] SortedForceX;
 		delete[] ForceY;
+		delete[] SortedForceY;
 		delete[] Mass;
 		delete[] Color;
 	}
@@ -127,8 +139,21 @@ Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 d
 	std::mt19937 gen(rd());
 	int cr = ceilf(sqrtf(count));
 	float circle_radius = cr * radius;
-	std::uniform_real_distribution<float> center_dist_x(circle_radius, dim.x - circle_radius);
-	std::uniform_real_distribution<float> center_dist_y(circle_radius, dim.y - circle_radius);
+
+	glm::vec2 minPos(circle_radius), maxPos(dim.x - circle_radius, dim.y - circle_radius);
+	if (2 * circle_radius > dim.x)
+	{
+		minPos.x = dim.x / 2;
+		maxPos.x = dim.x / 2;
+	}
+	if (2 * circle_radius > dim.y)
+	{
+		minPos.y = dim.y / 2;
+		maxPos.y = dim.y / 2;
+	}
+
+	std::uniform_real_distribution<float> center_dist_x(minPos.x, maxPos.x);
+	std::uniform_real_distribution<float> center_dist_y(minPos.y, maxPos.y);
 	glm::vec2 center(center_dist_x(gen), center_dist_y(gen));
 
 	Particles *p = new Particles(count, radius, false);
@@ -169,8 +194,19 @@ Particles *Particles::RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim)
 	std::mt19937 gen(rd());
 	int side_count = sqrtf(count);
 	float square_side = side_count * radius * 2.0f;
-	std::uniform_real_distribution<float> center_dist_x(radius, dim.x - (square_side - radius));
-	std::uniform_real_distribution<float> center_dist_y(radius, dim.y - (square_side - radius));
+
+	glm::vec2 minPos(radius), maxPos(dim.x - (square_side - radius), dim.y - (square_side - radius));
+	if (square_side > dim.x)
+	{
+		maxPos.x = minPos.x;
+	}
+	if (square_side > dim.y)
+	{
+		maxPos.y = minPos.y;
+	}
+
+	std::uniform_real_distribution<float> center_dist_x(minPos.x, maxPos.x);
+	std::uniform_real_distribution<float> center_dist_y(minPos.y, maxPos.y);
 	glm::vec2 center(center_dist_x(gen), center_dist_y(gen));
 
 	Particles *p = new Particles(side_count * side_count, radius, false);

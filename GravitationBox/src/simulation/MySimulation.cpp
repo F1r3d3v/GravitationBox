@@ -261,9 +261,10 @@ void MySimulation::OnImGuiRender()
 		ImGui::InputFloat("Timestep", &m_Params.Timestep);
 		ImGui::InputFloat("Gravity", &m_Params.Gravity);
 		ImGui::InputFloat("Walls Dampening", &m_Params.WallDampening);
-		ImGui::InputFloat("Particles Dampening", &m_Params.ParticleDampening);
-		ImGui::InputFloat("Particles Stiffness", &m_Params.ParticleStiffness);
-		ImGui::InputFloat("Particles Friction", &m_Params.ParticleFriction);
+		ImGui::InputFloat("Walls Friction", &m_Params.WallFriction);
+		ImGui::InputFloat("Particles Dampening", &m_Params.ParticlesDampening);
+		ImGui::InputFloat("Particles Stiffness", &m_Params.ParticlesStiffness);
+		ImGui::InputFloat("Particles Friction", &m_Params.ParticlesFriction);
 	}
 
 	ImGui::Spacing();

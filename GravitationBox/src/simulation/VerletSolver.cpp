@@ -17,32 +17,35 @@ void VerletSolver::VerletCPU()
 	UpdateParticles<false>();
 }
 
-glm::vec2 VerletSolver::CollideFloor(glm::vec2 position, glm::vec2 velocity, float mass, glm::vec2 floorPosition)
+template <bool floor>
+glm::vec2 VerletSolver::CollideWall(glm::vec2 position, glm::vec2 velocity, float mass, glm::vec2 floorPosition)
 {
 	glm::vec2 positionDelta = floorPosition - position;
 
-	float dist = glm::length(positionDelta);
+	float distance = glm::length(positionDelta);
 
 	glm::vec2 Force = glm::vec2(0.0f);
-	glm::vec2 Down = glm::vec2(0.0f, 1.0f);
 
-	if (dist < m_Params.Radius)
+	if (distance < m_Params.Radius)
 	{
-		glm::vec2 normal = positionDelta / dist;
+		glm::vec2 normal = positionDelta / distance;
 
 		glm::vec2 relativeVelocity = -velocity;
-		float  velocityAlongNormal = glm::dot(relativeVelocity, normal);
+		float velocityAlongNormal = glm::dot(relativeVelocity, normal);
 		glm::vec2 normalVelocity = velocityAlongNormal * normal;
 		glm::vec2 tangentVelocity = relativeVelocity - normalVelocity;
 
-		// Normal force
-		Force = -mass * m_Params.Gravity * Down;
+		if constexpr (floor)
+		{
+			// Normal force
+			Force = -mass * m_Params.Gravity * normal;
+		}
 
 		// Damping force
-		if (velocityAlongNormal < 0.0f) Force += m_Params.WallDampening * normalVelocity;
+		if (velocityAlongNormal < 0.0f) Force += m_Params.WallDampening * -normalVelocity;
 
 		// Friction force
-		Force += m_Params.ParticleFriction * tangentVelocity;
+		Force += m_Params.WallFriction * tangentVelocity;
 	}
 
 	return Force;
@@ -65,13 +68,13 @@ glm::vec2 VerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocityA,
 		glm::vec2 tangentVelocity = relativeVelocity - normalVelocity;
 
 		// Spring force
-		Force = -m_Params.ParticleStiffness * (collideDistance - distance) * normal;
+		Force = -m_Params.ParticlesStiffness * (collideDistance - distance) * normal;
 
 		// Damping force
-		if (velocityAlongNormal < 0) Force += m_Params.ParticleDampening * normalVelocity;
+		if (velocityAlongNormal < 0.0f) Force += m_Params.ParticlesDampening * normalVelocity;
 
 		// Friction force
-		Force += m_Params.ParticleFriction * tangentVelocity;
+		Force += m_Params.ParticlesFriction * tangentVelocity;
 	}
 
 	return Force;
@@ -89,11 +92,10 @@ glm::vec2 VerletSolver::CheckCollisionsInCell(uint32_t id, uint32_t cellId, glm:
 
 	for (size_t i = startIdx; i < endIdx; ++i)
 	{
-		uint32_t j = m_Grid->h_indices[i];
-		if (id == j) continue;
+		if (id == i) continue;
 
-		glm::vec2 otherPosition(m_Particles->PosX[j], m_Particles->PosY[j]);
-		glm::vec2 otherVelocity(m_Particles->VelX[j], m_Particles->VelY[j]);
+		glm::vec2 otherPosition(m_Particles->SortedPosX[i], m_Particles->SortedPosY[i]);
+		glm::vec2 otherVelocity(m_Particles->SortedVelX[i], m_Particles->SortedVelY[i]);
 
 		Force += SolveCollision(position, velocity, otherPosition, otherVelocity);
 	}
@@ -106,8 +108,10 @@ void VerletSolver::CheckCollisions()
 	for (uint32_t id = 0; id < m_Particles->Count; ++id)
 	{
 		glm::vec2 Force(0.0f, 0.0f);
-		float x = m_Particles->PosX[id];
-		float y = m_Particles->PosY[id];
+		float x = m_Particles->SortedPosX[id];
+		float y = m_Particles->SortedPosY[id];
+		float vx = m_Particles->SortedVelX[id];
+		float vy = m_Particles->SortedVelY[id];
 		glm::ivec2 cell = glm::ivec2(x / m_Grid->m_cellSize, y / m_Grid->m_cellSize);
 		cell.x = std::clamp(cell.x, 0, m_Grid->m_Dim.x - 1);
 		cell.y = std::clamp(cell.y, 0, m_Grid->m_Dim.y - 1);
@@ -120,12 +124,13 @@ void VerletSolver::CheckCollisions()
 				if (neighbour.x < 0 || neighbour.x >= m_Grid->m_Dim.x || neighbour.y < 0 || neighbour.y >= m_Grid->m_Dim.y) continue;
 
 				uint32_t cellId = neighbour.y * m_Grid->m_Dim.x + neighbour.x;
-				Force += CheckCollisionsInCell(id, cellId, glm::vec2(x, y), glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]));
+				Force += CheckCollisionsInCell(id, cellId, glm::vec2(x, y), glm::vec2(vx, vy));
 			}
 		}
 
-		m_Particles->ForceX[id] += Force.x;
-		m_Particles->ForceY[id] += Force.y;
+		uint32_t index = m_Grid->h_particleIndex[id];
+		m_Particles->ForceX[index] = m_Particles->SortedForceX[id] + Force.x;
+		m_Particles->ForceY[index] = m_Particles->SortedForceY[id] + Force.y;
 	}
 }
 
@@ -136,30 +141,53 @@ glm::vec2 VerletSolver::CheckCollisionsWithWalls(uint32_t id)
 	// Left and right walls
 	if (m_Particles->PosX[id] < m_Params.Radius)
 	{
+		Force += CollideWall(
+			glm::vec2(m_Particles->PosX[id], m_Particles->PosY[id]),
+			glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]),
+			m_Particles->Mass[id],
+			glm::vec2(0.0f, m_Particles->PosY[id])
+		);
+
 		m_Particles->PosX[id] = m_Params.Radius;
-		m_Particles->VelX[id] *= -m_Params.WallDampening;
+		m_Particles->VelX[id] *= -1;
 	}
 	else if (m_Particles->PosX[id] > m_Params.DimX - m_Params.Radius)
 	{
+		Force += CollideWall(
+			glm::vec2(m_Particles->PosX[id], m_Particles->PosY[id]),
+			glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]),
+			m_Particles->Mass[id],
+			glm::vec2(m_Params.DimX, m_Particles->PosY[id])
+		);
+
 		m_Particles->PosX[id] = m_Params.DimX - m_Params.Radius;
-		m_Particles->VelX[id] *= -m_Params.WallDampening;
+		m_Particles->VelX[id] *= -1;
 	}
 
 	// Top and bottom walls
 	if (m_Particles->PosY[id] < m_Params.Radius)
 	{
-		Force += CollideFloor(glm::vec2(m_Particles->PosX[id], m_Particles->PosY[id]),
-							  glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]),
-							  m_Particles->Mass[id],
-							  glm::vec2(m_Particles->PosX[id],0.0f));
+		Force += CollideWall<true>(
+			glm::vec2(m_Particles->PosX[id], m_Particles->PosY[id]),
+			glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]),
+			m_Particles->Mass[id],
+			glm::vec2(m_Particles->PosX[id], 0.0f)
+		);
 
 		m_Particles->PosY[id] = m_Params.Radius;
-		m_Particles->VelY[id] *= -m_Params.WallDampening;
+		m_Particles->VelY[id] *= -1;
 	}
 	else if (m_Particles->PosY[id] > m_Params.DimY - m_Params.Radius)
 	{
+		Force += CollideWall(
+			glm::vec2(m_Particles->PosX[id], m_Particles->PosY[id]),
+			glm::vec2(m_Particles->VelX[id], m_Particles->VelY[id]),
+			m_Particles->Mass[id],
+			glm::vec2(m_Particles->PosX[id], m_Params.DimY)
+		);
+
 		m_Particles->PosY[id] = m_Params.DimY - m_Params.Radius;
-		m_Particles->VelY[id] *= -m_Params.WallDampening;
+		m_Particles->VelY[id] *= -1;
 	}
 
 	return Force;

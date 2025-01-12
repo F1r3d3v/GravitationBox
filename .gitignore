@@ -401,3 +401,6 @@ FodyWeavers.xsd
 
 # Repomix
 .repomixignore
+
+#ImGui
+**/imgui.ini

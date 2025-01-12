@@ -25,9 +25,9 @@ private:
 
 	glm::vec4 m_ClearColor = glm::vec4(100.0f / 255.0f, 149.0f / 255.0f, 237.0f / 255.0f, 1.0f);
 	glm::vec4 m_ParticleColor = glm::vec4(40.0f / 255.0f, 12.0f / 255.0f, 221.0f / 255.0f, 1.0f);
-	uint32_t m_ParticleCount = 100000;
-	float m_ParticleRadius = 1.5f;
-	int m_Substeps = 1;
+	uint32_t m_ParticleCount = Config::PARTICLE_COUNT;
+	float m_ParticleRadius = Config::PARTICLE_RADIUS;
+	int m_Substeps = Config::SUBSTEPS;
 
 	Particles *m_ParticlesCPU, *m_ParticlesCUDA;
 	InstancedParticles *m_InstancedParticles;
@@ -36,15 +36,15 @@ private:
 	VerletSolver::SimulationParams m_Params;
 
 	bool m_IsPaused;
-	bool m_IsCuda = false;
+	bool m_IsCuda = true;
 	bool m_VSync;
 	bool m_IsWaterfall = false;
 	bool m_RandomColor = false;
 
-	int m_Selecteditem = 1;
+	int m_Selecteditem = Config::STARTING_PRESET;
 	int m_WaterfallRows;
 	float m_WaterfallDelay;
-	float m_WaterfalVelocity = 20.0f;
+	float m_WaterfalVelocity = Config::WATERFALL_VELOCITY;
 	float m_WaterfallAccumulator = 0.0f;
 };
 

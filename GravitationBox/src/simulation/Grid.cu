@@ -8,7 +8,7 @@
 #include "cuda/cuda_helper.h"
 #include "cuda/cuda_helper_math.h"
 
-__global__ void calculateCellIds(float *posX, float *posY, uint32_t *cellIds, uint32_t particleCount, float cellSize, int2 gridDims)
+__global__ void CalculateCellIds(float *posX, float *posY, uint32_t *cellIds, uint32_t particleCount, float cellSize, int2 gridDims)
 {
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDims.x;
@@ -21,7 +21,7 @@ __global__ void calculateCellIds(float *posX, float *posY, uint32_t *cellIds, ui
 	}
 }
 
-__global__ void findCellStartEnd(uint32_t *sortedCellIds, uint32_t *cellStart, uint32_t *cellEnd, uint32_t particleCount)
+__global__ void SetCellStartEnd(uint32_t *sortedCellIds, uint32_t *cellStart, uint32_t *cellEnd, uint32_t particleCount)
 {
 	__shared__ extern uint32_t sharedCellIds[];
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -112,7 +112,7 @@ cudaError_t Grid::freeGPUMemory()
 cudaError_t Grid::transferToGPU()
 {
 	CUDA_CHECK(cudaMemcpy(d_cellIds, h_cellIds.data(), h_cellIds.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
-	CUDA_CHECK(cudaMemcpy(d_particleIndex, h_indices.data(), h_indices.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMemcpy(d_particleIndex, h_particleIndex.data(), h_particleIndex.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
 	CUDA_CHECK(cudaMemcpy(d_cellStart, h_cellStart.data(), h_cellStart.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
 	CUDA_CHECK(cudaMemcpy(d_cellEnd, h_cellEnd.data(), h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
 
@@ -122,7 +122,7 @@ cudaError_t Grid::transferToGPU()
 cudaError_t Grid::transferToCPU()
 {
 	CUDA_CHECK(cudaMemcpy(h_cellIds.data(), d_cellIds, h_cellIds.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
-	CUDA_CHECK(cudaMemcpy(h_indices.data(), d_particleIndex, h_indices.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+	CUDA_CHECK(cudaMemcpy(h_particleIndex.data(), d_particleIndex, h_particleIndex.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
 	CUDA_CHECK(cudaMemcpy(h_cellStart.data(), d_cellStart, h_cellStart.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
 	CUDA_CHECK(cudaMemcpy(h_cellEnd.data(), d_cellEnd, h_cellEnd.size() * sizeof(uint32_t), cudaMemcpyDeviceToHost));
 
@@ -138,7 +138,7 @@ cudaError_t Grid::updateGridCUDA(const Particles &particles)
 
 	if (particles.Count == 0) return cudaSuccess;
 
-	calculateCellIds << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK >> > (
+	CalculateCellIds << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK >> > (
 		particles.PosX,
 		particles.PosY,
 		d_cellIds,
@@ -154,7 +154,7 @@ cudaError_t Grid::updateGridCUDA(const Particles &particles)
 	thrust::fill(thrust::device, d_cellStart_ptr, d_cellStart_ptr + h_cellStart.size(), 0xFFFFFFFF);
 
 	uint32_t memsize = (THREADS_PER_BLOCK + 1) * sizeof(uint32_t);
-	findCellStartEnd << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK, memsize >> > (
+	SetCellStartEnd << <BLOCKS_PER_GRID(particles.Count), THREADS_PER_BLOCK, memsize >> > (
 		d_cellIds,
 		d_cellStart,
 		d_cellEnd,
