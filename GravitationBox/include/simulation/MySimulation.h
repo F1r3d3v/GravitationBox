@@ -1,9 +1,9 @@
 #pragma once
 #include "engine/Simulation.h"
 #include "ParticleSystem.h"
-#include "VerletSolver.h"
-#include "InstancedParticles.h"
 #include "ParticleSolver.h"
+#include "InstancedParticles.h"
+#include "Grid.h"
 #include <imgui.h>
 
 class MySimulation : public Simulation
@@ -18,7 +18,7 @@ public:
 	void OnCleanup() override;
 	void OnResize(int width, int height) override;
 
-	cudaError_t ChangeCuda(bool isCuda);
+	void ChangeCuda(bool isCuda);
 
 private:
 	unsigned int m_ParticleShader = Renderer::LoadShaderFromFile("shaders/particle.vert", "shaders/particle.frag");

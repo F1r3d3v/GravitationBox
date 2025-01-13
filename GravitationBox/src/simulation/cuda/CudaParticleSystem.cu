@@ -136,3 +136,16 @@ CudaParticleSystem *CudaParticleSystem::CreateWaterfall(uint32_t count, float ra
 	delete p;
 	return pGPU;
 }
+
+CudaParticleSystem *CudaParticleSystem::CreateFromCPU(CpuParticleSystem *p, ParticleSolver *solver)
+{
+	CudaParticleSystem *pGPU = new CudaParticleSystem(p->TotalCount, p->Radius, solver);
+	cudaMemcpy(pGPU->PosX, p->PosX, p->TotalCount * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->PosY, p->PosY, p->TotalCount * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelX, p->VelX, p->TotalCount * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->VelY, p->VelY, p->TotalCount * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Mass, p->Mass, p->TotalCount * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(pGPU->Color, p->Color, p->TotalCount * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+	pGPU->Count = p->Count;
+	return pGPU;
+}

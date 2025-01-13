@@ -16,7 +16,7 @@ private:
 
 	template <bool floor = false>
 	glm::vec2 CollideWall(glm::vec2 position, glm::vec2 velocity, float mass, glm::vec2 floorPosition);
-	glm::vec2 SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB, ParticleSystem *p);
+	glm::vec2 SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB);
 	glm::vec2 CheckCollisionsInCell(uint32_t tid, uint32_t cellId, glm::vec2 position, glm::vec2 velocity, ParticleSystem *p);
 	glm::vec2 CheckCollisionsWithWalls(uint32_t id, ParticleSystem *p);
 

@@ -2,7 +2,6 @@
 #include "engine/Log.h"
 #include "glad/gl.h"
 #include "Config.h"
-#include "Particles.h"
 #include "GLFW/glfw3.h"
 
 #include <cuda_gl_interop.h>

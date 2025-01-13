@@ -5,6 +5,12 @@
 #include <glm.hpp>
 #include "Config.h"
 #include "cuda/cuda_helper.h"
+#include "cuda/CudaGrid.h"
+#include "cuda/CudaVerletSolver.h"
+#include "cuda/CudaParticleSystem.h"
+#include "cpu/CpuGrid.h"
+#include "cpu/CpuVerletSolver.h"
+#include "cpu/CpuParticleSystem.h"
 
 MySimulation::MySimulation(std::string title, int width, int height)
 	: Simulation(title, width, height)
@@ -24,11 +30,21 @@ void MySimulation::OnStart()
 	glm::ivec2 size = GetViewport();
 	m_IsPaused = true;
 	m_IsWaterfall = false;
-	m_WaterfallRows = 1.0 / 4.0 * (size.y / (2 * m_ParticleRadius));
+	m_WaterfallRows = static_cast<int>(1.0 / 4.0 * (size.y / (2.0 * m_ParticleRadius)));
 	m_WaterfallDelay = 3 * m_ParticleRadius / m_WaterfalVelocity;
 	m_Params.Radius = m_ParticleRadius;
-	m_Grid = new Grid(make_int2(size.x, size.y), 2 * m_ParticleRadius, m_IsCuda);
-	//m_Solver = new VerletSolver(m_Grid);
+
+	if (m_IsCuda)
+	{
+		m_Grid = new CudaGrid(size, 2 * m_ParticleRadius);
+		m_Solver = new CudaVerletSolver(m_Grid);
+	}
+	else
+	{
+		m_Grid = new CpuGrid(size, 2 * m_ParticleRadius);
+		m_Solver = new CpuVerletSolver(m_Grid);
+	}
+
 	switch (m_Selecteditem)
 	{
 	case 0:
@@ -118,41 +134,37 @@ void MySimulation::OnCleanup()
 void MySimulation::OnResize(int width, int height)
 {
 	if (width == 0 && height == 0) return;
-	m_Grid->Resize(make_int2(width, height), 2 * m_ParticleRadius);
+	m_Grid->Resize(glm::ivec2(width, height), 2 * m_ParticleRadius);
 	m_Params.DimX = width;
 	m_Params.DimY = height;
 }
 
-cudaError_t MySimulation::ChangeCuda(bool isCuda)
+void MySimulation::ChangeCuda(bool isCuda)
 {
 	m_IsCuda = isCuda;
+
 	if (m_IsCuda)
 	{
-		// Copy data from CPU to GPU
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->PosX, m_ParticlesCPU->PosX, m_ParticlesCPU->TotalCount * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->PosY, m_ParticlesCPU->PosY, m_ParticlesCPU->TotalCount * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelX, m_ParticlesCPU->VelX, m_ParticlesCPU->TotalCount * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->VelY, m_ParticlesCPU->VelY, m_ParticlesCPU->TotalCount * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Mass, m_ParticlesCPU->Mass, m_ParticlesCPU->TotalCount * sizeof(float), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCUDA->Color, m_ParticlesCPU->Color, m_ParticlesCPU->TotalCount * sizeof(glm::vec4), cudaMemcpyHostToDevice));
-		m_ParticlesCUDA->SetCount(m_ParticlesCPU->Count);
-		m_Solver->SetParticlesInstance(m_ParticlesCUDA);
+		delete m_Grid;
+		delete m_Solver;
+		m_Grid = new CudaGrid(GetViewport(), 2 * m_ParticleRadius);
+		m_Solver = new CudaVerletSolver(m_Grid);
+		CpuParticleSystem *pCpu = dynamic_cast<CpuParticleSystem *>(m_Particles);
+		ParticleSystem *pTmp = static_cast<ParticleSystem *>(CudaParticleSystem::CreateFromCPU(pCpu, m_Solver));
+		delete m_Particles;
+		m_Particles = pTmp;
 	}
 	else
 	{
-		// Copy data from GPU to CPU
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->PosX, m_ParticlesCUDA->PosX, m_ParticlesCUDA->TotalCount * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->PosY, m_ParticlesCUDA->PosY, m_ParticlesCUDA->TotalCount * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->VelX, m_ParticlesCUDA->VelX, m_ParticlesCUDA->TotalCount * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->VelY, m_ParticlesCUDA->VelY, m_ParticlesCUDA->TotalCount * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->Mass, m_ParticlesCUDA->Mass, m_ParticlesCUDA->TotalCount * sizeof(float), cudaMemcpyDeviceToHost));
-		CUDA_CHECK(cudaMemcpy(m_ParticlesCPU->Color, m_ParticlesCUDA->Color, m_ParticlesCUDA->TotalCount * sizeof(glm::vec4), cudaMemcpyDeviceToHost));
-		m_ParticlesCPU->SetCount(m_ParticlesCUDA->Count);
-		m_Solver->SetParticlesInstance(m_ParticlesCPU);
+		delete m_Grid;
+		delete m_Solver;
+		m_Grid = new CpuGrid(GetViewport(), 2 * m_ParticleRadius);
+		m_Solver = new CpuVerletSolver(m_Grid);
+		CudaParticleSystem *pCuda = dynamic_cast<CudaParticleSystem *>(m_Particles);
+		ParticleSystem *pTmp = static_cast<ParticleSystem *>(CpuParticleSystem::CreateFromCuda(pCuda, m_Solver));
+		delete m_Particles;
+		m_Particles = pTmp;
 	}
-	m_Grid->SetDevice(m_IsCuda);
-
-	return cudaSuccess;
 }
 
 void MySimulation::OnImGuiRender()
@@ -191,12 +203,10 @@ void MySimulation::OnImGuiRender()
 	{
 		if (ImGui::Checkbox("Random Color", &m_RandomColor))
 		{
-			m_ParticlesCPU->SetRandomColor(m_RandomColor);
-			m_ParticlesCUDA->SetRandomColor(m_RandomColor);
+			m_InstancedParticles->SetRandomColor(m_RandomColor);
 			if (!m_RandomColor)
 			{
-				m_ParticlesCPU->SetStillColor(m_ParticleColor);
-				m_ParticlesCUDA->SetStillColor(m_ParticleColor);
+				m_InstancedParticles->SetStillColor(m_ParticleColor);
 			}
 		}
 
@@ -204,8 +214,7 @@ void MySimulation::OnImGuiRender()
 		{
 			if (ImGui::ColorEdit3("Particle Color", &m_ParticleColor.x))
 			{
-				m_ParticlesCUDA->SetStillColor(m_ParticleColor);
-				m_ParticlesCPU->SetStillColor(m_ParticleColor);
+				m_InstancedParticles->SetStillColor(m_ParticleColor);
 			}
 		}
 
@@ -238,7 +247,7 @@ void MySimulation::OnImGuiRender()
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::Text("Window size: %.0f x %.0f", io.DisplaySize.x, io.DisplaySize.y);
-		ImGui::Text("Particle count: %zd", m_IsCuda ? m_ParticlesCUDA->Count : m_ParticlesCPU->Count);
+		ImGui::Text("Particle count: %zd", m_Particles->Count);
 		ImGui::Text("Particle mass range: %.1f - %.1f", Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
 	}
 

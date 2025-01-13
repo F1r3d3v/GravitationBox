@@ -2,6 +2,8 @@
 #include "ParticleSystem.h"
 #include "ParticleSolver.h"
 
+class CpuParticleSystem;
+
 class CudaParticleSystem : public ParticleSystem
 {
 public:
@@ -12,4 +14,6 @@ public:
 	static CudaParticleSystem *CreateCircle(uint32_t count, float radius, glm::ivec2 dim, ParticleSolver *solver);
 	static CudaParticleSystem *CreateBox(uint32_t count, float radius, glm::ivec2 dim, ParticleSolver *solver);
 	static CudaParticleSystem *CreateWaterfall(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows, ParticleSolver *solver);
+
+	static CudaParticleSystem *CreateFromCPU(CpuParticleSystem *p, ParticleSolver *solver);
 };

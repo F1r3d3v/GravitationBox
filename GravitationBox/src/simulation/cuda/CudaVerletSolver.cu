@@ -268,8 +268,8 @@ void CudaVerletSolver::Solve(ParticleSystem *p)
 		p->SortedPosX, p->SortedPosY,
 		p->SortedVelX, p->SortedVelY,
 		p->SortedForceX, p->SortedForceY,
-		m_Grid->d_cellStart, m_Grid->d_cellEnd,
-		m_Grid->d_particleIndex, make_int2(m_Grid->m_Dim.x, m_Grid->m_Dim.y),
+		m_Grid->GetCellStart(), m_Grid->GetCellEnd(),
+		m_Grid->GetParticleIndex(), make_int2(m_Grid->m_Dim.x, m_Grid->m_Dim.y),
 		m_Grid->m_CellSize, p->Count
 		);
 	cudaDeviceSynchronize();

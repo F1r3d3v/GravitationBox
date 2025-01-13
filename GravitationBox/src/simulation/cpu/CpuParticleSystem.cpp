@@ -1,4 +1,6 @@
 #include "cpu/CpuParticleSystem.h"
+#include "cuda/CudaParticleSystem.h"
+#include <cuda_runtime.h>
 #include <random>
 
 CpuParticleSystem::CpuParticleSystem(uint32_t count, float radius, ParticleSolver *solver)
@@ -89,19 +91,19 @@ CpuParticleSystem *CpuParticleSystem::CreateCircle(uint32_t count, float radius,
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	int cr = ceilf(sqrtf(count));
+	int cr = static_cast<int>(ceil(sqrt(count)));
 	float circle_radius = cr * radius;
 
 	glm::vec2 minPos(circle_radius), maxPos(dim.x - circle_radius, dim.y - circle_radius);
 	if (2 * circle_radius > dim.x)
 	{
-		minPos.x = dim.x / 2;
-		maxPos.x = dim.x / 2;
+		minPos.x = dim.x / 2.0f;
+		maxPos.x = dim.x / 2.0f;
 	}
 	if (2 * circle_radius > dim.y)
 	{
-		minPos.y = dim.y / 2;
-		maxPos.y = dim.y / 2;
+		minPos.y = dim.y / 2.0f;
+		maxPos.y = dim.y / 2.0f;
 	}
 
 	std::uniform_real_distribution<float> center_dist_x(minPos.x, maxPos.x);
@@ -114,7 +116,7 @@ CpuParticleSystem *CpuParticleSystem::CreateCircle(uint32_t count, float radius,
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
 	std::uniform_real_distribution<float> jitter(-radius * 0.01f, radius * 0.01f);
 
-	int index = 0;
+	uint32_t index = 0;
 	float spacing = 2 * radius;
 	for (int y = -cr; y <= cr; y++)
 	{
@@ -143,7 +145,7 @@ CpuParticleSystem *CpuParticleSystem::CreateBox(uint32_t count, float radius, gl
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	int side_count = sqrtf(count);
+	uint32_t side_count = static_cast<uint32_t>(sqrt(count));
 	float square_side = side_count * radius * 2.0f;
 
 	glm::vec2 minPos(radius), maxPos(dim.x - (square_side - radius), dim.y - (square_side - radius));
@@ -166,11 +168,11 @@ CpuParticleSystem *CpuParticleSystem::CreateBox(uint32_t count, float radius, gl
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
 	std::uniform_real_distribution<float> jitter(-radius * 0.01f, radius * 0.01f);
 
-	int index = 0;
+	uint32_t index = 0;
 	float spacing = 2 * radius;
-	for (int y = 0; y < side_count; y++)
+	for (uint32_t y = 0; y < side_count; y++)
 	{
-		for (int x = 0; x < side_count; x++)
+		for (uint32_t x = 0; x < side_count; x++)
 		{
 			float dx = x * spacing;
 			float dy = y * spacing;
@@ -210,5 +212,18 @@ CpuParticleSystem *CpuParticleSystem::CreateWaterfall(uint32_t count, float radi
 	}
 
 	p->Count = 0;
+	return p;
+}
+
+CpuParticleSystem *CpuParticleSystem::CreateFromCuda(CudaParticleSystem *pGPU, ParticleSolver *solver)
+{
+	CpuParticleSystem *p = new CpuParticleSystem(pGPU->TotalCount, pGPU->Radius, solver);
+	cudaMemcpy(p->PosX, pGPU->PosX, pGPU->TotalCount * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(p->PosY, pGPU->PosY, pGPU->TotalCount * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(p->VelX, pGPU->VelX, pGPU->TotalCount * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(p->VelY, pGPU->VelY, pGPU->TotalCount * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(p->Mass, pGPU->Mass, pGPU->TotalCount * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(p->Color, pGPU->Color, pGPU->TotalCount * sizeof(glm::vec4), cudaMemcpyDeviceToHost);
+	p->Count = pGPU->Count;
 	return p;
 }

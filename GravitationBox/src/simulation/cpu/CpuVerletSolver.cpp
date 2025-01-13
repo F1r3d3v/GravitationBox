@@ -1,12 +1,16 @@
 #include "cpu/CpuVerletSolver.h"
 #include <algorithm>
 
+static ParticleSystem::Parameters m_Params;
+
 CpuVerletSolver::CpuVerletSolver(Grid *g) : m_Grid(g)
 {
 }
 
 void CpuVerletSolver::Solve(ParticleSystem *p)
 {
+	m_Params = p->m_Params;
+
 	UpdateParticles<true>(p);
 	m_Grid->UpdateGrid(p);
 	CheckCollisions(p);
@@ -47,14 +51,14 @@ glm::vec2 CpuVerletSolver::CollideWall(glm::vec2 position, glm::vec2 velocity, f
 	return Force;
 }
 
-glm::vec2 CpuVerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB, ParticleSystem *p)
+glm::vec2 CpuVerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocityA, glm::vec2 positionB, glm::vec2 velocityB)
 {
 	glm::vec2 positionDelta = positionB - positionA;
 	float distance = glm::length(positionDelta);
 
 	glm::vec2 Force(0.0f, 0.0f);
 
-	float collideDistance = p->m_Params.Radius * 2.0f;
+	float collideDistance = m_Params.Radius * 2.0f;
 	if (distance < collideDistance)
 	{
 		glm::vec2 normal = positionDelta / distance;
@@ -64,13 +68,13 @@ glm::vec2 CpuVerletSolver::SolveCollision(glm::vec2 positionA, glm::vec2 velocit
 		glm::vec2 tangentVelocity = relativeVelocity - normalVelocity;
 
 		// Spring force
-		Force = -p->m_Params.ParticlesStiffness * (collideDistance - distance) * normal;
+		Force = -m_Params.ParticlesStiffness * (collideDistance - distance) * normal;
 
 		// Damping force
-		if (velocityAlongNormal < 0.0f) Force += p->m_Params.ParticlesDampening * normalVelocity;
+		if (velocityAlongNormal < 0.0f) Force += m_Params.ParticlesDampening * normalVelocity;
 
 		// Friction force
-		Force += p->m_Params.ParticlesFriction * tangentVelocity;
+		Force += m_Params.ParticlesFriction * tangentVelocity;
 	}
 
 	return Force;
@@ -80,11 +84,11 @@ glm::vec2 CpuVerletSolver::CheckCollisionsInCell(uint32_t id, uint32_t cellId, g
 {
 	glm::vec2 Force(0.0f, 0.0f);
 
-	uint32_t startIdx = m_Grid->h_cellStart[cellId];
+	uint32_t startIdx = m_Grid->GetCellStart()[cellId];
 
 	if (startIdx == 0xFFFFFFFF) return Force;
 
-	uint32_t endIdx = m_Grid->h_cellEnd[cellId];
+	uint32_t endIdx = m_Grid->GetCellEnd()[cellId];
 
 	for (size_t i = startIdx; i < endIdx; ++i)
 	{
@@ -120,11 +124,11 @@ void CpuVerletSolver::CheckCollisions(ParticleSystem *p)
 				if (neighbour.x < 0 || neighbour.x >= m_Grid->m_Dim.x || neighbour.y < 0 || neighbour.y >= m_Grid->m_Dim.y) continue;
 
 				uint32_t cellId = neighbour.y * m_Grid->m_Dim.x + neighbour.x;
-				Force += CheckCollisionsInCell(id, cellId, glm::vec2(x, y), glm::vec2(vx, vy));
+				Force += CheckCollisionsInCell(id, cellId, glm::vec2(x, y), glm::vec2(vx, vy), p);
 			}
 		}
 
-		uint32_t index = m_Grid->h_particleIndex[id];
+		uint32_t index = m_Grid->GetParticleIndex()[id];
 		p->ForceX[index] = p->SortedForceX[id] + Force.x;
 		p->ForceY[index] = p->SortedForceY[id] + Force.y;
 	}
@@ -135,7 +139,7 @@ glm::vec2 CpuVerletSolver::CheckCollisionsWithWalls(uint32_t id, ParticleSystem 
 	glm::vec2 Force = glm::vec2(0.0f);
 
 	// Left and right walls
-	if (p->PosX[id] < p->m_Params.Radius)
+	if (p->PosX[id] < m_Params.Radius)
 	{
 		Force += CollideWall(
 			glm::vec2(p->PosX[id], p->PosY[id]),
@@ -144,24 +148,24 @@ glm::vec2 CpuVerletSolver::CheckCollisionsWithWalls(uint32_t id, ParticleSystem 
 			glm::vec2(0.0f, p->PosY[id])
 		);
 
-		p->PosX[id] = p->m_Params.Radius;
+		p->PosX[id] = m_Params.Radius;
 		p->VelX[id] *= -1;
 	}
-	else if (p->PosX[id] > p->m_Params.DimX - p->m_Params.Radius)
+	else if (p->PosX[id] > m_Params.DimX - m_Params.Radius)
 	{
 		Force += CollideWall(
 			glm::vec2(p->PosX[id], p->PosY[id]),
 			glm::vec2(p->VelX[id], p->VelY[id]),
 			p->Mass[id],
-			glm::vec2(p->m_Params.DimX, p->PosY[id])
+			glm::vec2(m_Params.DimX, p->PosY[id])
 		);
 
-		p->PosX[id] = p->m_Params.DimX - p->m_Params.Radius;
+		p->PosX[id] = m_Params.DimX - m_Params.Radius;
 		p->VelX[id] *= -1;
 	}
 
 	// Top and bottom walls
-	if (p->PosY[id] < p->m_Params.Radius)
+	if (p->PosY[id] < m_Params.Radius)
 	{
 		Force += CollideWall<true>(
 			glm::vec2(p->PosX[id], p->PosY[id]),
@@ -170,19 +174,19 @@ glm::vec2 CpuVerletSolver::CheckCollisionsWithWalls(uint32_t id, ParticleSystem 
 			glm::vec2(p->PosX[id], 0.0f)
 		);
 
-		p->PosY[id] = p->m_Params.Radius;
+		p->PosY[id] = m_Params.Radius;
 		p->VelY[id] *= -1;
 	}
-	else if (p->PosY[id] > p->m_Params.DimY - p->m_Params.Radius)
+	else if (p->PosY[id] > m_Params.DimY - m_Params.Radius)
 	{
 		Force += CollideWall(
 			glm::vec2(p->PosX[id], p->PosY[id]),
 			glm::vec2(p->VelX[id], p->VelY[id]),
 			p->Mass[id],
-			glm::vec2(p->PosX[id], p->m_Params.DimY)
+			glm::vec2(p->PosX[id], m_Params.DimY)
 		);
 
-		p->PosY[id] = p->m_Params.DimY - p->m_Params.Radius;
+		p->PosY[id] = m_Params.DimY - m_Params.Radius;
 		p->VelY[id] *= -1;
 	}
 
@@ -200,16 +204,16 @@ void CpuVerletSolver::UpdateParticles(ParticleSystem *p)
 			glm::vec2 Velocity(p->VelX[id], p->VelY[id]);
 			glm::vec2 Force(p->ForceX[id], p->ForceY[id]);
 
-			Position += Velocity * p->m_Params.Timestep + Force * (0.5f * p->m_Params.Timestep * p->m_Params.Timestep) / p->Mass[id];
-			Velocity += 0.5f * Force * p->m_Params.Timestep / p->Mass[id];
-			Force = glm::vec2(0.0f, p->m_Params.Gravity * p->Mass[id]);
+			Position += Velocity * m_Params.Timestep + Force * (0.5f * m_Params.Timestep * m_Params.Timestep) / p->Mass[id];
+			Velocity += 0.5f * Force * m_Params.Timestep / p->Mass[id];
+			Force = glm::vec2(0.0f, m_Params.Gravity * p->Mass[id]);
 
 			p->PosX[id] = Position.x;
 			p->PosY[id] = Position.y;
 			p->VelX[id] = Velocity.x;
 			p->VelY[id] = Velocity.y;
 
-			Force += CheckCollisionsWithWalls(id);
+			Force += CheckCollisionsWithWalls(id, p);
 
 			p->ForceX[id] = Force.x;
 			p->ForceY[id] = Force.y;
@@ -219,7 +223,7 @@ void CpuVerletSolver::UpdateParticles(ParticleSystem *p)
 			glm::vec2 Velocity(p->VelX[id], p->VelY[id]);
 			glm::vec2 Force(p->ForceX[id], p->ForceY[id]);
 
-			Velocity += 0.5f * Force * p->m_Params.Timestep / p->Mass[id];
+			Velocity += 0.5f * Force * m_Params.Timestep / p->Mass[id];
 
 			p->VelX[id] = Velocity.x;
 			p->VelY[id] = Velocity.y;

@@ -17,7 +17,7 @@ void CpuGrid::UpdateGrid(ParticleSystem *p)
 	h_cellIds.resize(p->TotalCount);
 	h_particleIndex.resize(p->TotalCount);
 
-	for (size_t i = 0; i < p->Count; i++)
+	for (uint32_t i = 0; i < p->Count; i++)
 	{
 		int x = std::clamp((int)(p->PosX[i] / m_CellSize), 0, m_Dim.x - 1);
 		int y = std::clamp((int)(p->PosY[i] / m_CellSize), 0, m_Dim.y - 1);
@@ -34,7 +34,7 @@ void CpuGrid::UpdateGrid(ParticleSystem *p)
 
 	int currentCell = h_cellIds[0];
 	h_cellStart[currentCell] = 0;
-	for (size_t i = 1; i < p->Count; i++)
+	for (uint32_t i = 1; i < p->Count; i++)
 	{
 		if (h_cellIds[i] != currentCell)
 		{
@@ -45,7 +45,7 @@ void CpuGrid::UpdateGrid(ParticleSystem *p)
 	}
 	h_cellEnd[currentCell] = p->Count;
 
-	for (size_t i = 0; i < p->Count; i++)
+	for (uint32_t i = 0; i < p->Count; i++)
 	{
 		uint32_t index = h_particleIndex[i];
 		p->SortedPosX[i] = p->PosX[index];
