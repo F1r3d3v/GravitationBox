@@ -2,15 +2,17 @@
 #include "engine/Log.h"
 #include "engine/Renderer.h"
 #include "engine/Input.h"
-#include <glm.hpp>
 #include "Config.h"
 #include "cuda/cuda_helper.h"
 #include "cuda/CudaGrid.h"
 #include "cuda/CudaVerletSolver.h"
 #include "cuda/CudaParticleSystem.h"
+#include "cuda/CudaInstancedParticles.h"
 #include "cpu/CpuGrid.h"
 #include "cpu/CpuVerletSolver.h"
 #include "cpu/CpuParticleSystem.h"
+#include "cpu/CpuInstancedParticles.h"
+#include <glm.hpp>
 
 MySimulation::MySimulation(std::string title, int width, int height)
 	: Simulation(title, width, height)
@@ -30,39 +32,43 @@ void MySimulation::OnStart()
 	glm::ivec2 size = GetViewport();
 	m_IsPaused = true;
 	m_IsWaterfall = false;
-	m_WaterfallRows = static_cast<int>(1.0 / 4.0 * (size.y / (2.0 * m_ParticleRadius)));
+	m_WaterfallRows = static_cast<uint32_t>(1.0 / 4.0 * (size.y / (2.0 * m_ParticleRadius)));
 	m_WaterfallDelay = 3 * m_ParticleRadius / m_WaterfalVelocity;
 	m_Params.Radius = m_ParticleRadius;
 
 	if (m_IsCuda)
 	{
-		m_Grid = new CudaGrid(size, 2 * m_ParticleRadius);
-		m_Solver = new CudaVerletSolver(m_Grid);
+		m_Grid = std::make_unique<CudaGrid>(size, 2 * m_ParticleRadius);
+		m_Solver = std::make_unique<CudaVerletSolver>(m_Grid.get());
 	}
 	else
 	{
-		m_Grid = new CpuGrid(size, 2 * m_ParticleRadius);
-		m_Solver = new CpuVerletSolver(m_Grid);
+		m_Grid = std::make_unique<CpuGrid>(size, 2 * m_ParticleRadius);
+		m_Solver = std::make_unique<CpuVerletSolver>(m_Grid.get());
 	}
 
 	switch (m_Selecteditem)
 	{
 	case 0:
-		m_Particles = ParticleSystem::CreateRandom(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		m_Particles = std::unique_ptr<ParticleSystem>(ParticleSystem::CreateRandom(m_ParticleCount, m_ParticleRadius, size, m_Solver.get(), m_IsCuda));
 		break;
 	case 1:
-		m_Particles = ParticleSystem::CreateCircle(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		m_Particles = std::unique_ptr<ParticleSystem>(ParticleSystem::CreateCircle(m_ParticleCount, m_ParticleRadius, size, m_Solver.get(), m_IsCuda));
 		break;
 	case 2:
-		m_Particles = ParticleSystem::CreateBox(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		m_Particles = std::unique_ptr<ParticleSystem>(ParticleSystem::CreateBox(m_ParticleCount, m_ParticleRadius, size, m_Solver.get(), m_IsCuda));
 		break;
 	case 3:
 		m_IsWaterfall = true;
-		m_Particles = ParticleSystem::CreateWaterfall(m_ParticleCount, m_ParticleRadius, size, m_WaterfalVelocity, m_WaterfallRows, m_Solver, m_IsCuda);
+		m_Particles = std::unique_ptr<ParticleSystem>(ParticleSystem::CreateWaterfall(m_ParticleCount, m_ParticleRadius, size, m_WaterfalVelocity, m_WaterfallRows, m_Solver.get(), m_IsCuda));
 		break;
 	}
 
-	m_InstancedParticles = new InstancedParticles(m_Particles, m_ParticleShader);
+	if (m_IsCuda)
+		m_InstancedParticles = std::make_unique<CudaInstancedParticles>(m_Particles.get(), m_ParticleShader);
+	else
+		m_InstancedParticles = std::make_unique<CpuInstancedParticles>(m_Particles.get(), m_ParticleShader);
+
 	m_InstancedParticles->SetRandomColor(m_RandomColor);
 	m_InstancedParticles->SetStillColor(m_ParticleColor);
 
@@ -103,6 +109,7 @@ void MySimulation::OnUpdate(float deltaTime)
 				m_Particles->Count = std::min(m_Particles->TotalCount, m_Particles->Count + m_WaterfallRows);
 			}
 		}
+
 		ParticleSystem::Parameters params = m_Params;
 		params.Timestep /= m_Substeps;
 		m_Particles->SetParameters(params);
@@ -113,22 +120,17 @@ void MySimulation::OnUpdate(float deltaTime)
 void MySimulation::OnRender(Renderer *renderer)
 {
 	renderer->Clear(m_ClearColor);
-
-	if (m_IsCuda)
-		m_InstancedParticles->UpdateParticleInstancesCUDA();
-	else
-		m_InstancedParticles->UpdateParticleInstancesCPU();
-
+	m_InstancedParticles->UpdateParticleInstances();
 	m_InstancedParticles->Draw();
 }
 
 void MySimulation::OnCleanup()
 {
 	Log::Info("Simulation Ended");
-	delete m_Particles;
-	delete m_InstancedParticles;
-	delete m_Solver;
-	delete m_Grid;
+	m_InstancedParticles.reset();
+	m_Particles.reset();
+	m_Solver.reset();
+	m_Grid.reset();
 }
 
 void MySimulation::OnResize(int width, int height)
@@ -145,26 +147,21 @@ void MySimulation::ChangeCuda(bool isCuda)
 
 	if (m_IsCuda)
 	{
-		delete m_Grid;
-		delete m_Solver;
-		m_Grid = new CudaGrid(GetViewport(), 2 * m_ParticleRadius);
-		m_Solver = new CudaVerletSolver(m_Grid);
-		CpuParticleSystem *pCpu = dynamic_cast<CpuParticleSystem *>(m_Particles);
-		ParticleSystem *pTmp = static_cast<ParticleSystem *>(CudaParticleSystem::CreateFromCPU(pCpu, m_Solver));
-		delete m_Particles;
-		m_Particles = pTmp;
+		m_Grid.reset(new CudaGrid(GetViewport(), 2 * m_ParticleRadius));
+		m_Solver.reset(new CudaVerletSolver(m_Grid.get()));
+		m_Particles.reset(CudaParticleSystem::CreateFromCPU(dynamic_cast<CpuParticleSystem *>(m_Particles.get()), m_Solver.get()));
+		m_InstancedParticles.reset(new CudaInstancedParticles(m_Particles.get(), m_ParticleShader));
 	}
 	else
 	{
-		delete m_Grid;
-		delete m_Solver;
-		m_Grid = new CpuGrid(GetViewport(), 2 * m_ParticleRadius);
-		m_Solver = new CpuVerletSolver(m_Grid);
-		CudaParticleSystem *pCuda = dynamic_cast<CudaParticleSystem *>(m_Particles);
-		ParticleSystem *pTmp = static_cast<ParticleSystem *>(CpuParticleSystem::CreateFromCuda(pCuda, m_Solver));
-		delete m_Particles;
-		m_Particles = pTmp;
+		m_Grid.reset(new CpuGrid(GetViewport(), 2 * m_ParticleRadius));
+		m_Solver.reset(new CpuVerletSolver(m_Grid.get()));
+		m_Particles.reset(CpuParticleSystem::CreateFromCuda(dynamic_cast<CudaParticleSystem *>(m_Particles.get()), m_Solver.get()));
+		m_InstancedParticles.reset(new CpuInstancedParticles(m_Particles.get(), m_ParticleShader));
 	}
+
+	m_InstancedParticles->SetRandomColor(m_RandomColor);
+	m_InstancedParticles->SetStillColor(m_ParticleColor);
 }
 
 void MySimulation::OnImGuiRender()
@@ -175,7 +172,6 @@ void MySimulation::OnImGuiRender()
 	ImGui::SetNextWindowCollapsed(false, ImGuiCond_Once);
 	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x, 0), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
 	ImGui::Begin("Control Panel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
 
 	ImGui::Checkbox("Pause Simulation", &m_IsPaused);
 	ImGui::SameLine();

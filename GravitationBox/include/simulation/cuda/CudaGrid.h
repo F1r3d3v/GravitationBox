@@ -28,8 +28,8 @@ public:
 	};
 
 	// GPU data
-	uint32_t *d_cellIds;
-	uint32_t *d_particleIndex;
-	uint32_t *d_cellStart;
-	uint32_t *d_cellEnd;
+	uint32_t *d_cellIds = nullptr;
+	uint32_t *d_particleIndex = nullptr;
+	uint32_t *d_cellStart = nullptr;
+	uint32_t *d_cellEnd = nullptr;
 };

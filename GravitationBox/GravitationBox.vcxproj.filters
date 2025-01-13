@@ -16,6 +16,7 @@
     <ClCompile Include="src\simulation\ParticleSystem.cpp" />
     <ClCompile Include="src\simulation\cpu\CpuParticleSystem.cpp" />
     <ClCompile Include="src\simulation\Grid.cpp" />
+    <ClCompile Include="src\simulation\cpu\CpuInstancedParticles.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\engine\Window.h" />
@@ -40,11 +41,13 @@
     <ClInclude Include="include\simulation\Grid.h" />
     <ClInclude Include="include\simulation\cuda\CudaGrid.h" />
     <ClInclude Include="include\simulation\cuda\CudaVerletSolver.h" />
+    <ClInclude Include="include\simulation\cuda\CudaInstancedParticles.h" />
+    <ClInclude Include="include\simulation\cpu\CpuInstancedParticles.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\simulation\cuda\CudaVerletSolver.cu" />
     <CudaCompile Include="src\simulation\cuda\CudaGrid.cu" />
-    <CudaCompile Include="src\simulation\InstancedParticles.cu" />
     <CudaCompile Include="src\simulation\cuda\CudaParticleSystem.cu" />
+    <CudaCompile Include="src\simulation\cuda\CudaInstancedParticles.cu" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <glm.hpp>
+
+static inline consteval glm::vec4 make_color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+{
+	glm::vec4 v; v.x = r / 255.0f; v.y = g / 255.0f; v.z = b / 255.0f; v.w = a / 255.0f; return v;
+}
 
 namespace Config 
 {
@@ -9,6 +15,8 @@ namespace Config
 	static constexpr float RAND_PARTICLE_VELOCITY_MAX = 50.0f;
 	static constexpr float PARTICLE_MASS_MIN = 5.0f;
 	static constexpr float PARTICLE_MASS_MAX = 10.0f;
+	static constexpr glm::vec4 CLEAR_COLOR = make_color(100, 149, 237);
+	static constexpr glm::vec4 PARTICLE_COLOR = make_color(40, 12, 221);
 
 	// Simulation default parameters
 	static constexpr uint32_t PARTICLE_COUNT = 150000;

@@ -203,8 +203,8 @@ __global__ void CheckCollisionsKernel(
 	float *PosX, float *PosY,
 	float *VelX, float *VelY,
 	float *ForceX, float *ForceY,
-	unsigned int *cellStart, unsigned int *cellEnd,
-	unsigned int *indices,
+	uint32_t *cellStart, uint32_t *cellEnd,
+	uint32_t *indices,
 	int2 gridDimension, float cellSize,
 	uint32_t particleCount)
 {

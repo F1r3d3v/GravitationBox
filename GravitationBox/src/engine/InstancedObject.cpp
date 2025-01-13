@@ -1,7 +1,7 @@
 #include "engine/InstancedObject.h"
-#include "glad/gl.h"
+#include <glad/gl.h>
 
-InstancedObject::InstancedObject(size_t InstanceCount, uint32_t ShaderProgram)
+InstancedObject::InstancedObject(uint32_t InstanceCount, uint32_t ShaderProgram)
 	: m_InstanceCount(InstanceCount), m_ShaderProgram(ShaderProgram)
 {
 	glGenVertexArrays(1, &m_ParticleVAO);

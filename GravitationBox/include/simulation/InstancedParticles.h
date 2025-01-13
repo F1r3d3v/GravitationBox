@@ -7,7 +7,7 @@ class InstancedParticles : public InstancedObject
 {
 public:
 	InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram);
-	~InstancedParticles();
+	virtual ~InstancedParticles() = default;
 
 	struct GraphicsData
 	{
@@ -22,17 +22,15 @@ public:
 	};
 
 	void Draw() override;
-	void UpdateParticleInstancesCPU();
-	cudaError_t UpdateParticleInstancesCUDA();
+	virtual void UpdateParticleInstances() = 0;
 
 	void SetStillColor(glm::vec4 color) { m_ParticleData.StillColor = *(float4 *)&color; }
 	void SetRandomColor(bool random) { m_ParticleData.RandomColor = random; }
 
-private:
+protected:
 	void UpdateGraphicsData();
 
-	cudaGraphicsResource_t m_CudaVBOResource = nullptr;
-	GraphicsData m_ParticleData;
+	GraphicsData m_ParticleData{};
 	ParticleSystem *m_Particles;
 };
 

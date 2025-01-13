@@ -1,10 +1,12 @@
 #include "InstancedParticles.h"
-#include "glad/gl.h"
+
+#include <glad/gl.h>
+#include <glm.hpp>
+
 #include "cuda/cuda_helper.h"
 #include "cuda_gl_interop.h"
 #include "ParticleSystem.h"
 #include "engine/Renderer.h"
-#include "glm.hpp"
 
 InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram)
 	: InstancedObject(p->TotalCount, ShaderProgram), m_Particles(p)
@@ -23,13 +25,6 @@ InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram
 		2, 3, 0
 	};
 
-	// Create buffers
-	glGenVertexArrays(1, &m_ParticleVAO);
-	glGenBuffers(1, &m_ParticleVBO);
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
-	glGenBuffers(1, &m_InstanceVBO);
-
 	// Bind vertex array
 	glBindVertexArray(m_ParticleVAO);
 
@@ -38,7 +33,7 @@ InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 
 	// Set up element buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ParticleEBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	// Position attribute
@@ -52,9 +47,6 @@ InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram
 	// Create and register instance buffer for CUDA
 	glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, m_InstanceCount * 8 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-
-	// Register buffer with CUDA
-	CUDA_CHECK_NR(cudaGraphicsGLRegisterBuffer(&m_CudaVBOResource, m_InstanceVBO, cudaGraphicsMapFlagsWriteDiscard));
 
 	// Position (per instance)
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
@@ -76,14 +68,10 @@ InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram
 	glBindVertexArray(0);
 }
 
-InstancedParticles::~InstancedParticles()
-{
-	cudaGraphicsUnregisterResource(m_CudaVBOResource);
-	m_CudaVBOResource = nullptr;
-}
-
 void InstancedParticles::Draw()
 {
+	if (m_InstanceCount == 0) return;
+
 	// Bind shader
 	glm::vec2 viewport = Renderer::GetViewportSize();
 	glUseProgram(m_ShaderProgram);
@@ -95,7 +83,7 @@ void InstancedParticles::Draw()
 
 	// Draw particles
 	glBindVertexArray(m_ParticleVAO);
-	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(m_InstanceCount));
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(m_ParticleData.Count));
 	glBindVertexArray(0);
 
 	// Disable blending
@@ -103,26 +91,6 @@ void InstancedParticles::Draw()
 
 	// Unbind shader
 	glUseProgram(0);
-}
-
-void InstancedParticles::UpdateParticleInstancesCPU()
-{
-	UpdateGraphicsData();
-	glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
-	for (size_t i = 0; i < m_ParticleData.Count; ++i)
-	{
-		float instanceData[8] = 
-		{
-			m_ParticleData.PosX[i], m_ParticleData.PosY[i],
-			m_ParticleData.Scale.x, m_ParticleData.Scale.y,
-			m_ParticleData.RandomColor ? m_ParticleData.Color[i].x : m_ParticleData.StillColor.x,
-			m_ParticleData.RandomColor ? m_ParticleData.Color[i].y : m_ParticleData.StillColor.y,
-			m_ParticleData.RandomColor ? m_ParticleData.Color[i].z : m_ParticleData.StillColor.z,
-			m_ParticleData.RandomColor ? m_ParticleData.Color[i].w : m_ParticleData.StillColor.w
-		};
-		glBufferSubData(GL_ARRAY_BUFFER, i * 8 * sizeof(float), 8 * sizeof(float), instanceData);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void InstancedParticles::UpdateGraphicsData()
