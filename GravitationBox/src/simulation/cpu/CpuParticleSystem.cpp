@@ -1,95 +1,47 @@
-#include "Particles.h"
-#include "engine/Renderer.h"
-#include "cuda/cuda_helper.h"
+#include "cpu/CpuParticleSystem.h"
+#include <random>
 
-#define _USE_MATH_DEFINES	
-#include <math.h>
-
-Particles::Particles(uint32_t count, float radius, bool isCUDA) : TotalCount(count), Count(count), Radius(radius), m_IsCuda(isCUDA)
+CpuParticleSystem::CpuParticleSystem(uint32_t count, float radius, ParticleSolver *solver)
+	: ParticleSystem(count, radius, solver)
 {
-	if (m_IsCuda)
-	{
-		CUDA_CHECK_NR(cudaMalloc(&PosX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedPosX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&PosY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedPosY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&VelX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedVelX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&VelY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedVelY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&ForceX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMemset(ForceX, 0, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedForceX, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&ForceY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMemset(ForceY, 0, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&SortedForceY, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&Mass, Count * sizeof(float)));
-		CUDA_CHECK_NR(cudaMalloc(&Color, Count * sizeof(glm::vec4)));
-	}
-	else
-	{
-		PosX = new float[Count];
-		SortedPosX = new float[Count];
-		PosY = new float[Count];
-		SortedPosY = new float[Count];
-		VelX = new float[Count];
-		SortedVelX = new float[Count];
-		VelY = new float[Count];
-		SortedVelY = new float[Count];
-		ForceX = new float[Count];
-		memset(ForceX, 0, Count * sizeof(float));
-		SortedForceX = new float[Count];
-		ForceY = new float[Count];
-		memset(ForceY, 0, Count * sizeof(float));
-		SortedForceY = new float[Count];
-		Mass = new float[Count];
-		Color = new glm::vec4[Count];
-	}
-
-	InitDrawingData();
+	PosX = new float[Count];
+	SortedPosX = new float[Count];
+	PosY = new float[Count];
+	SortedPosY = new float[Count];
+	VelX = new float[Count];
+	SortedVelX = new float[Count];
+	VelY = new float[Count];
+	SortedVelY = new float[Count];
+	ForceX = new float[Count];
+	memset(ForceX, 0, Count * sizeof(float));
+	SortedForceX = new float[Count];
+	ForceY = new float[Count];
+	memset(ForceY, 0, Count * sizeof(float));
+	SortedForceY = new float[Count];
+	Mass = new float[Count];
+	Color = new glm::vec4[Count];
 }
 
-Particles::~Particles()
+CpuParticleSystem::~CpuParticleSystem()
 {
-	if (m_IsCuda)
-	{
-		CUDA_CHECK_NR(cudaFree(PosX));
-		CUDA_CHECK_NR(cudaFree(SortedPosX));
-		CUDA_CHECK_NR(cudaFree(PosY));
-		CUDA_CHECK_NR(cudaFree(SortedPosY));
-		CUDA_CHECK_NR(cudaFree(VelX));
-		CUDA_CHECK_NR(cudaFree(SortedVelX));
-		CUDA_CHECK_NR(cudaFree(VelY));
-		CUDA_CHECK_NR(cudaFree(SortedVelY));
-		CUDA_CHECK_NR(cudaFree(ForceX));
-		CUDA_CHECK_NR(cudaFree(SortedForceX));
-		CUDA_CHECK_NR(cudaFree(ForceY));
-		CUDA_CHECK_NR(cudaFree(SortedForceY));
-		CUDA_CHECK_NR(cudaFree(Mass));
-		CUDA_CHECK_NR(cudaFree(Color));
-	}
-	else
-	{
-		delete[] PosX;
-		delete[] SortedPosX;
-		delete[] PosY;
-		delete[] SortedPosY;
-		delete[] VelX;
-		delete[] SortedVelX;
-		delete[] VelY;
-		delete[] SortedVelY;
-		delete[] ForceX;
-		delete[] SortedForceX;
-		delete[] ForceY;
-		delete[] SortedForceY;
-		delete[] Mass;
-		delete[] Color;
-	}
+	delete[] PosX;
+	delete[] SortedPosX;
+	delete[] PosY;
+	delete[] SortedPosY;
+	delete[] VelX;
+	delete[] SortedVelX;
+	delete[] VelY;
+	delete[] SortedVelY;
+	delete[] ForceX;
+	delete[] SortedForceX;
+	delete[] ForceY;
+	delete[] SortedForceY;
+	delete[] Mass;
+	delete[] Color;
 }
 
-Particles *Particles::RandomCPU(uint32_t count, float radius, glm::ivec2 dim)
+CpuParticleSystem *CpuParticleSystem::CreateRandom(uint32_t count, float radius, glm::ivec2 dim, ParticleSolver *solver)
 {
-	Particles *p = new Particles(count, radius, false);
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -99,6 +51,7 @@ Particles *Particles::RandomCPU(uint32_t count, float radius, glm::ivec2 dim)
 	std::uniform_real_distribution<float> mass_dist(Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
 
+	CpuParticleSystem *p = new CpuParticleSystem(count, radius, solver);
 	for (size_t i = 0; i < count; ++i)
 	{
 		glm::vec2 pos;
@@ -129,11 +82,10 @@ Particles *Particles::RandomCPU(uint32_t count, float radius, glm::ivec2 dim)
 		p->Color[i] = glm::vec4(color_dist(gen), color_dist(gen), color_dist(gen), 1.0f);
 	}
 
-	p->InitDrawingData();
 	return p;
 }
 
-Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 dim)
+CpuParticleSystem *CpuParticleSystem::CreateCircle(uint32_t count, float radius, glm::ivec2 dim, ParticleSolver *solver)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -156,7 +108,7 @@ Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 d
 	std::uniform_real_distribution<float> center_dist_y(minPos.y, maxPos.y);
 	glm::vec2 center(center_dist_x(gen), center_dist_y(gen));
 
-	Particles *p = new Particles(count, radius, false);
+	CpuParticleSystem *p = new CpuParticleSystem(count, radius, solver);
 	std::uniform_real_distribution<float> vel_dist(-Config::RAND_PARTICLE_VELOCITY_MAX, Config::RAND_PARTICLE_VELOCITY_MAX);
 	std::uniform_real_distribution<float> mass_dist(Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
@@ -184,11 +136,10 @@ Particles *Particles::RandomCircleCPU(uint32_t count, float radius, glm::ivec2 d
 		}
 	}
 	p->Count = index;
-	p->InitDrawingData();
 	return p;
 }
 
-Particles *Particles::RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim)
+CpuParticleSystem *CpuParticleSystem::CreateBox(uint32_t count, float radius, glm::ivec2 dim, ParticleSolver *solver)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -209,7 +160,7 @@ Particles *Particles::RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim)
 	std::uniform_real_distribution<float> center_dist_y(minPos.y, maxPos.y);
 	glm::vec2 center(center_dist_x(gen), center_dist_y(gen));
 
-	Particles *p = new Particles(side_count * side_count, radius, false);
+	CpuParticleSystem *p = new CpuParticleSystem(side_count * side_count, radius, solver);
 	std::uniform_real_distribution<float> vel_dist(-Config::RAND_PARTICLE_VELOCITY_MAX, Config::RAND_PARTICLE_VELOCITY_MAX);
 	std::uniform_real_distribution<float> mass_dist(Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
@@ -235,13 +186,13 @@ Particles *Particles::RandomBoxCPU(uint32_t count, float radius, glm::ivec2 dim)
 			}
 		}
 	}
-	p->InitDrawingData();
+
 	return p;
 }
 
-Particles *Particles::WaterfallCPU(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows)
+CpuParticleSystem *CpuParticleSystem::CreateWaterfall(uint32_t count, float radius, glm::ivec2 dim, float velocity, int rows, ParticleSolver *solver)
 {
-	Particles *p = new Particles(count, radius, false);
+	CpuParticleSystem *p = new CpuParticleSystem(count, radius, solver);
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution<float> mass_dist(Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
@@ -259,44 +210,5 @@ Particles *Particles::WaterfallCPU(uint32_t count, float radius, glm::ivec2 dim,
 	}
 
 	p->Count = 0;
-	p->InitDrawingData();
 	return p;
-}
-
-void Particles::InitDrawingData()
-{
-	m_ParticleData.PosX = PosX;
-	m_ParticleData.PosY = PosY;
-	m_ParticleData.Color = (float4 *)Color;
-	m_ParticleData.Count = Count;
-}
-
-void Particles::DrawCPU(Renderer *renderer, InstancedParticles *instancedParticles)
-{
-	glm::vec2 viewport = renderer->GetViewportSize();
-	m_ParticleData.Scale = make_float2(2 * Radius / viewport.x, 2 * Radius / viewport.y);
-	instancedParticles->UpdateParticleInstancesCPU(&m_ParticleData);
-	instancedParticles->Draw();
-}
-
-void Particles::DrawCUDA(Renderer *renderer, InstancedParticles *instancedParticles)
-{
-	glm::vec2 viewport = renderer->GetViewportSize();
-	m_ParticleData.Scale = make_float2(2 * Radius / viewport.x, 2 * Radius / viewport.y);
-	instancedParticles->UpdateParticleInstancesCUDA(&m_ParticleData);
-	instancedParticles->Draw();
-}
-
-void Particles::SetCount(uint32_t count)
-{
-	if (count <= TotalCount)
-	{
-		Count = count;
-		m_ParticleData.Count = count;
-	}
-	else
-	{
-		Count = TotalCount;
-		m_ParticleData.Count = TotalCount;
-	}
 }

@@ -2,11 +2,12 @@
 #include "glad/gl.h"
 #include "cuda/cuda_helper.h"
 #include "cuda_gl_interop.h"
-#include "Particles.h"
+#include "ParticleSystem.h"
+#include "engine/Renderer.h"
 #include "glm.hpp"
 
-InstancedParticles::InstancedParticles(Particles *p, uint32_t ShaderProgram)
-	: InstancedObject(p->TotalCount, ShaderProgram)
+InstancedParticles::InstancedParticles(ParticleSystem *p, uint32_t ShaderProgram)
+	: InstancedObject(p->TotalCount, ShaderProgram), m_Particles(p)
 {
 	// Vertex data for a quad (centered at origin)
 	float quadVertices[] = {
@@ -104,21 +105,32 @@ void InstancedParticles::Draw()
 	glUseProgram(0);
 }
 
-void InstancedParticles::UpdateParticleInstancesCPU(ParticleData *pData)
+void InstancedParticles::UpdateParticleInstancesCPU()
 {
+	UpdateGraphicsData();
 	glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
-	for (size_t i = 0; i < pData->Count; ++i)
+	for (size_t i = 0; i < m_ParticleData.Count; ++i)
 	{
 		float instanceData[8] = 
 		{
-			pData->PosX[i], pData->PosY[i],
-			pData->Scale.x, pData->Scale.y,
-			pData->RandomColor ? pData->Color[i].x : pData->StillColor.x,
-			pData->RandomColor ? pData->Color[i].y : pData->StillColor.y,
-			pData->RandomColor ? pData->Color[i].z : pData->StillColor.z,
-			pData->RandomColor ? pData->Color[i].w : pData->StillColor.w
+			m_ParticleData.PosX[i], m_ParticleData.PosY[i],
+			m_ParticleData.Scale.x, m_ParticleData.Scale.y,
+			m_ParticleData.RandomColor ? m_ParticleData.Color[i].x : m_ParticleData.StillColor.x,
+			m_ParticleData.RandomColor ? m_ParticleData.Color[i].y : m_ParticleData.StillColor.y,
+			m_ParticleData.RandomColor ? m_ParticleData.Color[i].z : m_ParticleData.StillColor.z,
+			m_ParticleData.RandomColor ? m_ParticleData.Color[i].w : m_ParticleData.StillColor.w
 		};
 		glBufferSubData(GL_ARRAY_BUFFER, i * 8 * sizeof(float), 8 * sizeof(float), instanceData);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void InstancedParticles::UpdateGraphicsData()
+{
+	glm::vec2 viewport = Renderer::GetViewportSize();
+	m_ParticleData.PosX = m_Particles->PosX;
+	m_ParticleData.PosY = m_Particles->PosY;
+	m_ParticleData.Scale = make_float2(2 * m_Particles->Radius / viewport.x, 2 * m_Particles->Radius / viewport.y);
+	m_ParticleData.Color = (float4 *)m_Particles->Color;
+	m_ParticleData.Count = m_Particles->Count;
 }

@@ -1,11 +1,11 @@
-#include "VerletSolver.h"
+#include "cuda/CudaVerletSolver.h"
 #include "cuda/cuda_helper.h"
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "cuda/cuda_helper_math.h"
 #include "Config.h"
 
-__constant__ VerletSolver::SimulationParams d_Params;
+__constant__ ParticleSystem::Parameters d_Params;
 
 template <bool floor = false>
 __device__ float2 CollideWall(float2 position, float2 velocity, float mass, float2 wallPosition)
@@ -242,47 +242,45 @@ __global__ void CheckCollisionsKernel(
 	}
 }
 
-void VerletSolver::SetParams(const SimulationParams &params)
+CudaVerletSolver::CudaVerletSolver(Grid *g) : m_Grid(g)
 {
-	m_Params = params;
-	cudaMemcpyToSymbol(d_Params, &params, sizeof(SimulationParams));
 }
 
-cudaError_t VerletSolver::VerletCuda()
+void CudaVerletSolver::Solve(ParticleSystem *p)
 {
-	if (!m_Particles->Count) return cudaSuccess;
+	if (!p->Count) return;
 
-	VelocityVerletIntegrationKernel<true> << <BLOCKS_PER_GRID(m_Particles->Count), THREADS_PER_BLOCK >> > (
-		m_Particles->PosX, m_Particles->PosY,
-		m_Particles->VelX, m_Particles->VelY,
-		m_Particles->ForceX, m_Particles->ForceY,
-		m_Particles->Mass, m_Particles->Count
+	cudaMemcpyToSymbol(d_Params, &p->m_Params, sizeof(ParticleSystem::Parameters));
+
+	VelocityVerletIntegrationKernel<true> << <BLOCKS_PER_GRID(p->Count), THREADS_PER_BLOCK >> > (
+		p->PosX, p->PosY,
+		p->VelX, p->VelY,
+		p->ForceX, p->ForceY,
+		p->Mass, p->Count
 		);
 	cudaDeviceSynchronize();
-	CUDA_CHECK(cudaGetLastError());
+	CUDA_CHECK_NR(cudaGetLastError());
 
-	m_Grid->UpdateGrid(*m_Particles);
+	m_Grid->UpdateGrid(p);
 
-	CheckCollisionsKernel << <BLOCKS_PER_GRID(m_Particles->Count), THREADS_PER_BLOCK >> > (
-		m_Particles->ForceX, m_Particles->ForceY,
-		m_Particles->SortedPosX, m_Particles->SortedPosY,
-		m_Particles->SortedVelX, m_Particles->SortedVelY,
-		m_Particles->SortedForceX, m_Particles->SortedForceY,
+	CheckCollisionsKernel << <BLOCKS_PER_GRID(p->Count), THREADS_PER_BLOCK >> > (
+		p->ForceX, p->ForceY,
+		p->SortedPosX, p->SortedPosY,
+		p->SortedVelX, p->SortedVelY,
+		p->SortedForceX, p->SortedForceY,
 		m_Grid->d_cellStart, m_Grid->d_cellEnd,
-		m_Grid->d_particleIndex, m_Grid->m_Dim,
-		m_Grid->m_cellSize, m_Particles->Count
+		m_Grid->d_particleIndex, make_int2(m_Grid->m_Dim.x, m_Grid->m_Dim.y),
+		m_Grid->m_CellSize, p->Count
 		);
 	cudaDeviceSynchronize();
-	CUDA_CHECK(cudaGetLastError());
+	CUDA_CHECK_NR(cudaGetLastError());
 
-	VelocityVerletIntegrationKernel<false> << <BLOCKS_PER_GRID(m_Particles->Count), THREADS_PER_BLOCK >> > (
-		m_Particles->PosX, m_Particles->PosY,
-		m_Particles->VelX, m_Particles->VelY,
-		m_Particles->ForceX, m_Particles->ForceY,
-		m_Particles->Mass, m_Particles->Count
+	VelocityVerletIntegrationKernel<false> << <BLOCKS_PER_GRID(p->Count), THREADS_PER_BLOCK >> > (
+		p->PosX, p->PosY,
+		p->VelX, p->VelY,
+		p->ForceX, p->ForceY,
+		p->Mass, p->Count
 		);
 	cudaDeviceSynchronize();
-	CUDA_CHECK(cudaGetLastError());
-
-	return cudaSuccess;
+	CUDA_CHECK_NR(cudaGetLastError());
 }

@@ -9,11 +9,13 @@
     <ClCompile Include="src\simulation\MySimulation.cpp" />
     <ClCompile Include="src\engine\Input.cpp" />
     <ClCompile Include="src\engine\Log.cpp" />
-    <ClCompile Include="src\simulation\Particles.cpp" />
-    <ClCompile Include="src\simulation\VerletSolver.cpp" />
-    <ClCompile Include="src\simulation\Grid.cpp" />
+    <ClCompile Include="src\simulation\cpu\CpuVerletSolver.cpp" />
+    <ClCompile Include="src\simulation\cpu\CpuGrid.cpp" />
     <ClCompile Include="src\engine\InstancedObject.cpp" />
     <ClCompile Include="src\simulation\InstancedParticles.cpp" />
+    <ClCompile Include="src\simulation\ParticleSystem.cpp" />
+    <ClCompile Include="src\simulation\cpu\CpuParticleSystem.cpp" />
+    <ClCompile Include="src\simulation\Grid.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\engine\Window.h" />
@@ -23,20 +25,26 @@
     <ClInclude Include="include\simulation\MySimulation.h" />
     <ClInclude Include="include\engine\Input.h" />
     <ClInclude Include="include\engine\Log.h" />
-    <ClInclude Include="include\simulation\Particles.h" />
     <ClInclude Include="include\simulation\Config.h" />
     <ClInclude Include="include\cuda\cuda_helper.h" />
-    <ClInclude Include="include\simulation\VerletSolver.h" />
-    <ClInclude Include="include\simulation\Grid.h" />
+    <ClInclude Include="include\simulation\cpu\CpuVerletSolver.h" />
     <ClInclude Include="include\cuda\cuda_helper_math.h" />
     <ClInclude Include="include\engine\GraphicsObject.h" />
     <ClInclude Include="include\engine\InstancedObject.h" />
     <ClInclude Include="include\simulation\InstancedParticles.h" />
+    <ClInclude Include="include\simulation\ParticleSystem.h" />
+    <ClInclude Include="include\simulation\ParticleSolver.h" />
+    <ClInclude Include="include\simulation\cpu\CpuParticleSystem.h" />
+    <ClInclude Include="include\simulation\cuda\CudaParticleSystem.h" />
+    <ClInclude Include="include\simulation\cpu\CpuGrid.h" />
+    <ClInclude Include="include\simulation\Grid.h" />
+    <ClInclude Include="include\simulation\cuda\CudaGrid.h" />
+    <ClInclude Include="include\simulation\cuda\CudaVerletSolver.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\simulation\Particles.cu" />
-    <CudaCompile Include="src\simulation\VerletSolver.cu" />
-    <CudaCompile Include="src\simulation\Grid.cu" />
+    <CudaCompile Include="src\simulation\cuda\CudaVerletSolver.cu" />
+    <CudaCompile Include="src\simulation\cuda\CudaGrid.cu" />
     <CudaCompile Include="src\simulation\InstancedParticles.cu" />
+    <CudaCompile Include="src\simulation\cuda\CudaParticleSystem.cu" />
   </ItemGroup>
 </Project>

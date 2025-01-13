@@ -1,8 +1,9 @@
 #pragma once
 
-#include <glm.hpp>
+#include <cstdint>
 
-namespace Config {
+namespace Config 
+{
 	static constexpr int WINDOW_WIDTH = 1600;
 	static constexpr int WINDOW_HEIGHT = 900;
 	static constexpr float RAND_PARTICLE_VELOCITY_MAX = 50.0f;
@@ -10,9 +11,9 @@ namespace Config {
 	static constexpr float PARTICLE_MASS_MAX = 10.0f;
 
 	// Simulation default parameters
-	static constexpr float PARTICLE_COUNT = 150000;
+	static constexpr uint32_t PARTICLE_COUNT = 150000;
 	static constexpr float PARTICLE_RADIUS = 1.5f;
-	static constexpr float SUBSTEPS = 2;
+	static constexpr uint8_t SUBSTEPS = 2;
 	static constexpr float TIMESTEP = 0.01f;
 	static constexpr float GRAVITY = 10.0f;
 	static constexpr float WALL_DAMPENING = 50.0f;
@@ -27,6 +28,6 @@ namespace Config {
 	// 1 - Circle
 	// 2 - Box
 	// 3 - Waterfall
-	static constexpr int STARTING_PRESET = 3;
+	static constexpr uint8_t STARTING_PRESET = 3;
 	static constexpr float WATERFALL_VELOCITY = 80.0f;
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include "engine/Simulation.h"
-#include "Particles.h"
+#include "ParticleSystem.h"
 #include "VerletSolver.h"
 #include "InstancedParticles.h"
+#include "ParticleSolver.h"
 #include <imgui.h>
 
 class MySimulation : public Simulation
@@ -29,11 +30,11 @@ private:
 	float m_ParticleRadius = Config::PARTICLE_RADIUS;
 	int m_Substeps = Config::SUBSTEPS;
 
-	Particles *m_ParticlesCPU, *m_ParticlesCUDA;
+	ParticleSystem *m_Particles;
+	ParticleSystem::Parameters m_Params;
 	InstancedParticles *m_InstancedParticles;
+	ParticleSolver *m_Solver;
 	Grid *m_Grid;
-	VerletSolver *m_Solver;
-	VerletSolver::SimulationParams m_Params;
 
 	bool m_IsPaused;
 	bool m_IsCuda = true;

@@ -28,54 +28,28 @@ void MySimulation::OnStart()
 	m_WaterfallDelay = 3 * m_ParticleRadius / m_WaterfalVelocity;
 	m_Params.Radius = m_ParticleRadius;
 	m_Grid = new Grid(make_int2(size.x, size.y), 2 * m_ParticleRadius, m_IsCuda);
-	if (m_IsCuda)
+	//m_Solver = new VerletSolver(m_Grid);
+	switch (m_Selecteditem)
 	{
-		switch (m_Selecteditem)
-		{
-		case 0:
-			m_ParticlesCUDA = Particles::RandomCUDA(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 1:
-			m_ParticlesCUDA = Particles::RandomCircleCUDA(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 2:
-			m_ParticlesCUDA = Particles::RandomBoxCUDA(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 3:
-			m_IsWaterfall = true;
-			m_ParticlesCUDA = Particles::WaterfallCUDA(m_ParticleCount, m_ParticleRadius, size, m_WaterfalVelocity, m_WaterfallRows);
-			break;
-		}
-		m_ParticlesCPU = new Particles(m_ParticleCount, m_ParticleRadius, false);
-		m_Solver = new VerletSolver(m_ParticlesCUDA, m_Grid);
+	case 0:
+		m_Particles = ParticleSystem::CreateRandom(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		break;
+	case 1:
+		m_Particles = ParticleSystem::CreateCircle(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		break;
+	case 2:
+		m_Particles = ParticleSystem::CreateBox(m_ParticleCount, m_ParticleRadius, size, m_Solver, m_IsCuda);
+		break;
+	case 3:
+		m_IsWaterfall = true;
+		m_Particles = ParticleSystem::CreateWaterfall(m_ParticleCount, m_ParticleRadius, size, m_WaterfalVelocity, m_WaterfallRows, m_Solver, m_IsCuda);
+		break;
 	}
-	else
-	{
-		switch (m_Selecteditem)
-		{
-		case 0:
-			m_ParticlesCPU = Particles::RandomCPU(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 1:
-			m_ParticlesCPU = Particles::RandomCircleCPU(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 2:
-			m_ParticlesCPU = Particles::RandomBoxCPU(m_ParticleCount, m_ParticleRadius, size);
-			break;
-		case 3:
-			m_IsWaterfall = true;
-			m_ParticlesCPU = Particles::WaterfallCPU(m_ParticleCount, m_ParticleRadius, size, m_WaterfalVelocity, m_WaterfallRows);
-			break;
-		}
-		m_ParticlesCUDA = new Particles(m_ParticleCount, m_ParticleRadius, true);
-		m_Solver = new VerletSolver(m_ParticlesCPU, m_Grid);
-	}
-	m_ParticlesCPU->SetRandomColor(m_RandomColor);
-	m_ParticlesCUDA->SetRandomColor(m_RandomColor);
-	m_ParticlesCPU->SetStillColor(m_ParticleColor);
-	m_ParticlesCUDA->SetStillColor(m_ParticleColor);
 
-	m_InstancedParticles = new InstancedParticles(m_ParticlesCPU, m_ParticleShader);
+	m_InstancedParticles = new InstancedParticles(m_Particles, m_ParticleShader);
+	m_InstancedParticles->SetRandomColor(m_RandomColor);
+	m_InstancedParticles->SetStillColor(m_ParticleColor);
+
 	Log::Info("Simulation initialized");
 }
 
@@ -110,44 +84,35 @@ void MySimulation::OnUpdate(float deltaTime)
 			{
 				m_WaterfallAccumulator -= m_WaterfallDelay;
 
-				m_ParticlesCUDA->SetCount(m_ParticlesCUDA->Count + m_WaterfallRows);
-				m_ParticlesCPU->SetCount(m_ParticlesCPU->Count + m_WaterfallRows);
+				m_Particles->Count = std::min(m_Particles->TotalCount, m_Particles->Count + m_WaterfallRows);
 			}
 		}
-		VerletSolver::SimulationParams params = m_Params;
+		ParticleSystem::Parameters params = m_Params;
 		params.Timestep /= m_Substeps;
-		m_Solver->SetParams(params);
-		for (int i = 0; i < m_Substeps; i++)
-		{
-			if (m_IsCuda)
-			{
-				m_Solver->VerletCuda();
-			}
-			else
-			{
-				m_Solver->VerletCPU();
-			}
-		}
+		m_Particles->SetParameters(params);
+		m_Particles->Update();
 	}
 }
 
 void MySimulation::OnRender(Renderer *renderer)
 {
 	renderer->Clear(m_ClearColor);
+
 	if (m_IsCuda)
-		m_ParticlesCUDA->DrawCUDA(renderer, m_InstancedParticles);
+		m_InstancedParticles->UpdateParticleInstancesCUDA();
 	else
-		m_ParticlesCPU->DrawCPU(renderer, m_InstancedParticles);
+		m_InstancedParticles->UpdateParticleInstancesCPU();
+
+	m_InstancedParticles->Draw();
 }
 
 void MySimulation::OnCleanup()
 {
 	Log::Info("Simulation Ended");
-	delete m_ParticlesCPU;
-	delete m_ParticlesCUDA;
-	delete m_Grid;
-	delete m_Solver;
+	delete m_Particles;
 	delete m_InstancedParticles;
+	delete m_Solver;
+	delete m_Grid;
 }
 
 void MySimulation::OnResize(int width, int height)

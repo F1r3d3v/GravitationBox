@@ -1,7 +1,6 @@
 #include "InstancedParticles.h"
 #include "glad/gl.h"
 #include "cuda/cuda_helper.h"
-#include "Particles.h"
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -23,9 +22,11 @@ __global__ void UpdateInstanceDataKernel(float *vboPtr, float *PosX, float *PosY
 	}
 }
 
-cudaError_t InstancedParticles::UpdateParticleInstancesCUDA(ParticleData *pData)
+cudaError_t InstancedParticles::UpdateParticleInstancesCUDA()
 {
-	if (!pData->Count) return cudaSuccess;
+	if (!m_ParticleData.Count) return cudaSuccess;
+
+	UpdateGraphicsData();
 
 	// Map OpenGL buffer for writing from CUDA
 	float *dPtr;
@@ -34,15 +35,15 @@ cudaError_t InstancedParticles::UpdateParticleInstancesCUDA(ParticleData *pData)
 	CUDA_CHECK(cudaGraphicsResourceGetMappedPointer((void **)&dPtr, &numBytes, m_CudaVBOResource));
 
 	// Launch kernel to update instance data
-	UpdateInstanceDataKernel << <BLOCKS_PER_GRID(pData->Count), THREADS_PER_BLOCK >> > (
+	UpdateInstanceDataKernel << <BLOCKS_PER_GRID(m_ParticleData.Count), THREADS_PER_BLOCK >> > (
 		dPtr,
-		pData->PosX,
-		pData->PosY,
-		pData->Scale,
-		pData->Color,
-		pData->RandomColor,
-		pData->StillColor,
-		pData->Count);
+		m_ParticleData.PosX,
+		m_ParticleData.PosY,
+		m_ParticleData.Scale,
+		m_ParticleData.Color,
+		m_ParticleData.RandomColor,
+		m_ParticleData.StillColor,
+		m_ParticleData.Count);
 	cudaDeviceSynchronize();
 	CUDA_CHECK(cudaGetLastError());
 
