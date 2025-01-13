@@ -1,9 +1,10 @@
 #include "cuda/CudaVerletSolver.h"
-#include "cuda/cuda_helper.h"
+#include "utils/cuda_helper.h"
+#include "utils/cuda_helper_math.h"
+#include "Config.h"
+
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
-#include "cuda/cuda_helper_math.h"
-#include "Config.h"
 
 __constant__ ParticleSystem::Parameters d_Params;
 

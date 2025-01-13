@@ -45,10 +45,10 @@
     <ClInclude Include="include\simulation\cuda\CudaInstancedParticles.h" />
     <ClInclude Include="include\simulation\cuda\CudaParticleSystem.h" />
     <ClInclude Include="include\simulation\cpu\CpuParticleSystem.h" />
-    <ClInclude Include="include\cuda\cuda_helper_math.h" />
+    <ClInclude Include="include\simulation\utils\cuda_helper_math.h" />
     <ClInclude Include="include\engine\GraphicsObject.h" />
     <ClInclude Include="include\simulation\Config.h" />
-    <ClInclude Include="include\cuda\cuda_helper.h" />
+    <ClInclude Include="include\simulation\utils\cuda_helper.h" />
     <ClInclude Include="include\simulation\cuda\CudaVerletSolver.h" />
     <ClInclude Include="include\simulation\Grid.h" />
     <ClInclude Include="include\simulation\InstancedParticles.h" />

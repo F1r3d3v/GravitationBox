@@ -3,7 +3,7 @@
 #include "engine/Renderer.h"
 #include "engine/Input.h"
 #include "Config.h"
-#include "cuda/cuda_helper.h"
+#include "utils/cuda_helper.h"
 #include "cuda/CudaGrid.h"
 #include "cuda/CudaVerletSolver.h"
 #include "cuda/CudaParticleSystem.h"

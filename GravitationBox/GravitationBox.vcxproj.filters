@@ -27,9 +27,9 @@
     <ClInclude Include="include\engine\Input.h" />
     <ClInclude Include="include\engine\Log.h" />
     <ClInclude Include="include\simulation\Config.h" />
-    <ClInclude Include="include\cuda\cuda_helper.h" />
+    <ClInclude Include="include\simulation\utils\cuda_helper.h" />
     <ClInclude Include="include\simulation\cpu\CpuVerletSolver.h" />
-    <ClInclude Include="include\cuda\cuda_helper_math.h" />
+    <ClInclude Include="include\simulation\utils\cuda_helper_math.h" />
     <ClInclude Include="include\engine\GraphicsObject.h" />
     <ClInclude Include="include\engine\InstancedObject.h" />
     <ClInclude Include="include\simulation\InstancedParticles.h" />

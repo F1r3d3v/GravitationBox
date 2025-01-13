@@ -1,6 +1,6 @@
 #include "cuda/CudaGrid.h"
-#include "cuda/cuda_helper.h"
-#include "cuda/cuda_helper_math.h"
+#include "utils/cuda_helper.h"
+#include "utils/cuda_helper_math.h"
 
 #include <thrust/sort.h>
 #include <thrust/sequence.h>

@@ -3,7 +3,7 @@
 #include <glad/gl.h>
 #include <glm.hpp>
 
-#include "cuda/cuda_helper.h"
+#include "utils/cuda_helper.h"
 #include "cuda_gl_interop.h"
 #include "ParticleSystem.h"
 #include "engine/Renderer.h"

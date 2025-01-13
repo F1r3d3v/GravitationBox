@@ -1,6 +1,6 @@
 #include "cuda/CudaParticleSystem.h"
 #include "cpu/CpuParticleSystem.h"
-#include "cuda/cuda_helper.h"
+#include "utils/cuda_helper.h"
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <device_launch_parameters.h>
