@@ -162,7 +162,7 @@ CpuParticleSystem *CpuParticleSystem::CreateBox(uint32_t count, float radius, gl
 	std::uniform_real_distribution<float> center_dist_y(minPos.y, maxPos.y);
 	glm::vec2 center(center_dist_x(gen), center_dist_y(gen));
 
-	CpuParticleSystem *p = new CpuParticleSystem(side_count * side_count, radius, solver);
+	CpuParticleSystem *p = new CpuParticleSystem(count, radius, solver);
 	std::uniform_real_distribution<float> vel_dist(-Config::RAND_PARTICLE_VELOCITY_MAX, Config::RAND_PARTICLE_VELOCITY_MAX);
 	std::uniform_real_distribution<float> mass_dist(Config::PARTICLE_MASS_MIN, Config::PARTICLE_MASS_MAX);
 	std::uniform_real_distribution<float> color_dist(0.0f, 1.0f);
@@ -188,7 +188,7 @@ CpuParticleSystem *CpuParticleSystem::CreateBox(uint32_t count, float radius, gl
 			}
 		}
 	}
-
+	p->Count = index;
 	return p;
 }
 
